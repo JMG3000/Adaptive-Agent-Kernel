@@ -1,0 +1,11 @@
+# Adaptive Agent Kernel
+
+Adaptive Agent Kernel is a Track 2 — Collaborative Partner project for the All Things Agentic Hackathon.
+
+## Project Initialization
+
+Owner approval granted on 2026-08-22 to initialize this repository and establish the `main` branch.
+
+This commit authorizes repository initialization only. It does not authorize application implementation, deployment, CI/CD, cloud-resource changes, or expansion of the approved v0.1 scope.
+
+The first implementation target is the approved Option B runnable reference kernel and will be developed on a feature branch.
