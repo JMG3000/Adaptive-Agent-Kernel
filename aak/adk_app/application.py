@@ -1,0 +1,73 @@
+"""Minimal local Google ADK application wired for Vertex AI."""
+
+from __future__ import annotations
+
+from google.adk.agents import Agent
+from google.adk.apps import App
+from google.adk.models import BaseLlm
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+
+
+MODEL_ID = "gemini-3.5-flash"
+APP_NAME = "adaptive_agent_kernel"
+AGENT_NAME = "aak_agent"
+
+
+def _require_external_value(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ValueError(f"{label} must be supplied as a non-empty canonical string")
+    return value
+
+
+def build_vertex_model(*, project: str, location: str) -> Gemini:
+    """Configure Gemini through Vertex without inferred provider defaults."""
+
+    return Gemini(
+        model=MODEL_ID,
+        client_kwargs={
+            "vertexai": True,
+            "project": _require_external_value(project, "Google Cloud project"),
+            "location": _require_external_value(location, "Vertex model location"),
+        },
+    )
+
+
+def build_app(*, model: BaseLlm) -> App:
+    """Build the real ADK Agent/App while leaving persistence to AAK gates."""
+
+    agent = Agent(
+        name=AGENT_NAME,
+        model=model,
+        instruction="Respond helpfully and concisely to the user's message.",
+        tools=[],
+    )
+    return App(name=APP_NAME, root_agent=agent)
+
+
+def build_vertex_app(*, project: str, location: str) -> App:
+    """Build the production-model form of the local ADK application."""
+
+    return build_app(model=build_vertex_model(project=project, location=location))
+
+
+async def run_local_interaction(application: App, *, prompt: str) -> str:
+    """Run one interaction with temporary, non-authoritative ADK state."""
+
+    canonical_prompt = _require_external_value(prompt, "prompt")
+    async with InMemoryRunner(app=application) as runner:
+        events = await runner.run_debug(
+            canonical_prompt,
+            user_id="local_adk_user",
+            session_id="local_adk_session",
+            quiet=True,
+        )
+
+    for event in reversed(events):
+        content = event.content
+        if content is None:
+            continue
+        text = "".join(part.text or "" for part in content.parts or [])
+        if text:
+            return text
+    raise RuntimeError("ADK interaction completed without a text model response")
