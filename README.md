@@ -16,12 +16,16 @@ The repository currently contains locally verified foundations for:
 - deterministic ADK execution through `InMemoryRunner`, with a fake `BaseLlm`
   only at the model/network boundary.
 
-The ADK in-memory runner is local execution state, not the authoritative AAK
-Session or persistent-memory implementation.
+One separately authorized live smoke test also exercised the existing AAK ADK
+application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
+model location and received a successful model response. The Agent Platform
+location is independently decided as `us`; the Cloud Run region is unresolved.
 
-Live Vertex execution, managed Agent Platform Sessions, Memory Bank,
-provider-backed memory gates, Retrieval Gate behavior, correction/adaptation,
-Cloud Run, and the complete Option B kernel remain **not verified**.
+The local ADK in-memory runner remains temporary execution state, not the
+authoritative AAK Session or persistent-memory implementation. Managed Agent
+Platform Sessions, Memory Bank and provider-backed memory, Recall, Relevance,
+Adaptation, Correction, Cloud Run deployment, and the complete Option B kernel
+remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
@@ -53,6 +57,6 @@ Run the accepted local regression tests:
   -v
 ```
 
-These tests do not authenticate to Google Cloud or prove a live Vertex AI
-response. No Google Cloud project or Vertex location is defaulted by the
-application.
+These local regression tests do not authenticate to Google Cloud and do not by
+themselves prove live Vertex AI execution. No Google Cloud project or Vertex
+location is defaulted by the application.

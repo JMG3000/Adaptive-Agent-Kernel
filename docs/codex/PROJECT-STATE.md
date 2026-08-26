@@ -1,6 +1,6 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-24\
+**Status date:** 2026-08-26\
 **Purpose:** Mutable source for the current AAK implementation state, approved
 reference architecture, MVP boundary, and immediate engineering objective.
 
@@ -71,6 +71,15 @@ Current reference path:
 → on-demand episodic retrieval
 → explicit correction precedence
 → agent response
+
+Current location decisions:
+
+- `VERTEX_MODEL_LOCATION = us` — **DECIDED**
+- `AGENT_PLATFORM_LOCATION = us` — **DECIDED**
+- `CLOUD_RUN_REGION` — **UNRESOLVED**
+
+These are separate configuration decisions. Do not infer a Cloud Run region
+from either approved `us` location.
 
 Preserve these conceptual boundaries:
 
@@ -252,7 +261,7 @@ As of this state record:
 - dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete active and platform-conditional lock sets on 2026-08-24; this is point-in-time evidence, not a permanent safety guarantee**
 - application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App foundation are present**
 - runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
-- Gemini/Vertex invocation: **NOT VERIFIED — model wiring targets `gemini-3.5-flash` through explicit Vertex client configuration, but no live call was attempted because gcloud, ADC, project, and Vertex location are unavailable**
+- Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
 - Agent Platform Sessions integration: **NOT VERIFIED**
 - Memory Bank ingestion: **NOT VERIFIED**
 - Memory Write Gate: **LOCALLY VERIFIED — SEC-MW-001–004 pass against a fake incremental event sink; live provider behavior remains unverified**
@@ -265,7 +274,7 @@ As of this state record:
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **NOT VERIFIED**
 - correction precedence: **NOT VERIFIED**
-- five regression families: **NOT VERIFIED**
+- five regression families: **NOT VERIFIED — Cold Start, Recall, Relevance, Adaptation, and Correction remain unverified**
 - rootless Podman/OCI project validation: **NOT VERIFIED**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
