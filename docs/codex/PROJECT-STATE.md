@@ -1,6 +1,6 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-26\
+**Status date:** 2026-08-27\
 **Purpose:** Mutable source for the current AAK implementation state, approved
 reference architecture, MVP boundary, and immediate engineering objective.
 
@@ -257,16 +257,17 @@ As of this state record:
 - root Codex operating instructions: **PRESENT — owner reported**
 - project-state record: **PRESENT — owner reported**
 - Python runtime support: **DECIDED — AAK v0.1 supports Python 3.14.x; the current tested interpreter is Python 3.14.4 and the project constraint is `>=3.14,<3.15`**
-- Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.4, `google-adk==2.7.1`, `pyproject.toml`, and `uv.lock`; all 59 lock records inspected, 56 Linux-target packages installed without conflicts, and 2 platform-conditional records separately reviewed**
-- dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete active and platform-conditional lock sets on 2026-08-24; this is point-in-time evidence, not a permanent safety guarantee**
-- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App foundation are present**
+- Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.4, `google-adk==2.7.1`, `google-cloud-aiplatform[agent-engines]==1.165.1`, `pyproject.toml`, and `uv.lock`; all 85 lock records were inspected and 82 packages synchronize without conflicts**
+- dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete resolved lock set on 2026-08-26; this is point-in-time evidence, not a permanent safety guarantee**
+- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App and managed-Sessions adapter are present**
 - runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
 - Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
-- Agent Platform Sessions integration: **NOT VERIFIED**
+- Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
+- Agent Platform Sessions integration: **VERIFIED — on 2026-08-27, the AAK adapter created exactly one synthetic managed Session with the provider-minimum `86400s` TTL, retrieved it for the authenticated AAK identity, and denied cross-user and same-user/wrong-scope reads before provider access**
 - Memory Bank ingestion: **NOT VERIFIED**
 - Memory Write Gate: **LOCALLY VERIFIED — SEC-MW-001–004 pass against a fake incremental event sink; live provider behavior remains unverified**
 - Retrieval Gate: **NOT VERIFIED**
-- authenticated identity/session binding: **LOCALLY VERIFIED — Slice 1 in-memory seam; provider authentication and Session adapter remain unverified**
+- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof; production authenticated ingress and durable AAK scope-authority restoration remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**

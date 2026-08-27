@@ -14,18 +14,25 @@ The repository currently contains locally verified foundations for:
 - a Google ADK `Agent` and `App` configured for `gemini-3.5-flash` through
   explicit Vertex AI project and model-location inputs;
 - deterministic ADK execution through `InMemoryRunner`, with a fake `BaseLlm`
-  only at the model/network boundary.
+  only at the model/network boundary;
+- an AAK-authorized `VertexAiSessionService` adapter that preserves the
+  authenticated user/scope boundary and fails closed before provider access.
 
 One separately authorized live smoke test also exercised the existing AAK ADK
 application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
 model location and received a successful model response. The Agent Platform
 location is independently decided as `us`; the Cloud Run region is unresolved.
+One bounded live managed-Sessions proof also created and retrieved a synthetic
+Session through the AAK adapter and verified that cross-user and wrong-scope
+reads were denied before provider access.
 
-The local ADK in-memory runner remains temporary execution state, not the
-authoritative AAK Session or persistent-memory implementation. Managed Agent
-Platform Sessions, Memory Bank and provider-backed memory, Recall, Relevance,
-Adaptation, Correction, Cloud Run deployment, and the complete Option B kernel
-remain **not verified**.
+The local ADK in-memory runner remains temporary execution state. Managed
+Session persistence is now provider-backed for this bounded seam, while AAK's
+scope-authorization registry remains process-local and fail-closed rather than
+a production authenticated-ingress or durable scope-restoration mechanism.
+Memory Bank and provider-backed memory, Recall, Relevance, Adaptation,
+Correction, Cloud Run deployment, and the complete Option B kernel remain
+**not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
@@ -54,9 +61,10 @@ Run the accepted local regression tests:
   tests.test_identity_session \
   tests.test_memory_write_gate \
   tests.test_adk_foundation \
+  tests.test_managed_sessions \
   -v
 ```
 
 These local regression tests do not authenticate to Google Cloud and do not by
-themselves prove live Vertex AI execution. No Google Cloud project or Vertex
-location is defaulted by the application.
+themselves prove live Vertex AI or managed-Sessions execution. No Google Cloud
+project or Vertex location is defaulted by the application.
