@@ -45,8 +45,9 @@ class FakeNativeMemoryProvider:
         return FakeAsyncPager(self.retrieved_by_scope.get(key, ()))
 
 
-def retrieved_memory(*, memory_id, fact, scope):
+def retrieved_memory(*, memory_id, fact, scope, distance=None):
     return SimpleNamespace(
+        distance=distance,
         memory=SimpleNamespace(
             name=(
                 "projects/project-1/locations/us/reasoningEngines/runtime-1/"
@@ -188,6 +189,53 @@ class MemoryBankProviderTests(unittest.IsolatedAsyncioTestCase):
                 {"aak_scope": "tenant-1", "user_id": "user-b"},
             ],
             [call["scope"] for call in self.provider.retrieve_calls],
+        )
+
+    async def test_similarity_retrieval_uses_current_request_and_preserves_ranking(self):
+        scope = {"aak_scope": "tenant-1", "user_id": "user-a"}
+        self.provider.retrieved_by_scope[tuple(sorted(scope.items()))] = (
+            retrieved_memory(
+                memory_id="memory-relevant",
+                fact="prioritize secure delivery",
+                scope=scope,
+                distance=0.12,
+            ),
+            retrieved_memory(
+                memory_id="memory-unrelated",
+                fact="enjoys watercolor painting",
+                scope=scope,
+                distance=0.83,
+            ),
+        )
+        retrieve_similar = getattr(self.adapter, "retrieve_similar_memories", None)
+        self.assertIsNotNone(
+            retrieve_similar,
+            "native similarity retrieval is unavailable",
+        )
+
+        retrieved = await retrieve_similar(
+            self.user_a,
+            query="Which MVP option should I choose?",
+            top_k=2,
+        )
+
+        self.assertEqual(
+            ["prioritize secure delivery", "enjoys watercolor painting"],
+            [memory.fact for memory in retrieved],
+        )
+        self.assertEqual([0.12, 0.83], [memory.distance for memory in retrieved])
+        self.assertEqual(
+            {
+                "name": (
+                    "projects/project-1/locations/us/reasoningEngines/runtime-1"
+                ),
+                "scope": {"aak_scope": "tenant-1", "user_id": "user-a"},
+                "similarity_search_params": {
+                    "search_query": "Which MVP option should I choose?",
+                    "top_k": 2,
+                },
+            },
+            self.provider.retrieve_calls[-1],
         )
 
     async def test_provider_response_with_mismatched_scope_fails_closed(self):

@@ -38,7 +38,8 @@ class NativeMemoryBankProvider(Protocol):
         *,
         name: str,
         scope: dict[str, str],
-        simple_retrieval_params: dict[str, int],
+        similarity_search_params: dict[str, str | int] | None = None,
+        simple_retrieval_params: dict[str, int] | None = None,
     ) -> Any: ...
 
 
@@ -48,6 +49,7 @@ class ScopedMemory:
 
     memory_id: str
     fact: str
+    distance: float | None = None
 
 
 def _require_canonical(value: object, label: str) -> str:
@@ -173,6 +175,46 @@ class NativeMemoryBankAdapter:
             scope=expected_scope,
             simple_retrieval_params={"page_size": limit},
         )
+        return await self._validated_memories(
+            pager,
+            expected_scope=expected_scope,
+            limit=limit,
+        )
+
+    async def retrieve_similar_memories(
+        self,
+        identity: AuthenticatedIdentity,
+        *,
+        query: str,
+        top_k: int,
+    ) -> tuple[ScopedMemory, ...]:
+        """Retrieve bounded provider-ranked candidates in one exact AAK scope."""
+
+        canonical_query = _require_canonical(query, "memory retrieval query")
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 10:
+            raise ValueError("similarity retrieval top_k must be between 1 and 10")
+        expected_scope = native_memory_scope(identity)
+        pager = await self._provider.retrieve(
+            name=self._resource_name,
+            scope=expected_scope,
+            similarity_search_params={
+                "search_query": canonical_query,
+                "top_k": top_k,
+            },
+        )
+        return await self._validated_memories(
+            pager,
+            expected_scope=expected_scope,
+            limit=top_k,
+        )
+
+    @staticmethod
+    async def _validated_memories(
+        pager: Any,
+        *,
+        expected_scope: dict[str, str],
+        limit: int,
+    ) -> tuple[ScopedMemory, ...]:
         retrieved: list[ScopedMemory] = []
         async for item in pager:
             memory = getattr(item, "memory", None)
@@ -193,7 +235,20 @@ class NativeMemoryBankAdapter:
                 raise MemoryBankProviderError(
                     "native Memory Bank returned a malformed memory"
                 ) from error
-            retrieved.append(ScopedMemory(memory_id=memory_id, fact=fact))
+            distance = getattr(item, "distance", None)
+            if distance is not None:
+                if isinstance(distance, bool) or not isinstance(distance, (int, float)):
+                    raise MemoryBankProviderError(
+                        "native Memory Bank returned a malformed similarity distance"
+                    )
+                distance = float(distance)
+            retrieved.append(
+                ScopedMemory(
+                    memory_id=memory_id,
+                    fact=fact,
+                    distance=distance,
+                )
+            )
             if len(retrieved) == limit:
                 break
         return tuple(retrieved)

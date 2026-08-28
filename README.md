@@ -20,7 +20,11 @@ The repository currently contains locally verified foundations for:
   authenticated user/scope boundary and fails closed before provider access;
 - an AAK native Memory Bank adapter that derives the exact provider scope
   `{aak_scope, user_id}` from authenticated AAK authority and keeps incremental
-  provider writes behind the existing Memory Write Gate.
+  provider writes behind the existing Memory Write Gate;
+- a bounded Retrieval Gate and minimal Context Builder that query the current
+  authenticated native scope with `top_k=2`, admit only the provider-ranked
+  structurally valid rank-1 result, and keep memory/provenance as untrusted data
+  separate from application control and the current request.
 
 One separately authorized live smoke test also exercised the existing AAK ADK
 application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
@@ -33,15 +37,21 @@ proof also passed one synthetic Session event through the AAK Memory Write
 Gate, completed provider generation, found the generated memory in the
 intended exact scope, and observed no result from provider queries using the
 corresponding wrong-scope and wrong-user scopes.
+One bounded live adaptive-recall proof then used fresh synthetic memory and a
+new Session to demonstrate Cold Start, Recall, and a visible recommendation
+change. For that controlled Relevance case, the applicable memory ranked first,
+only rank 1 entered active context, and the unrelated returned candidate did
+not. This is not a universal semantic-relevance policy, and no similarity
+distance threshold is used.
 
 The local ADK in-memory runner remains temporary execution state. Managed
 Session persistence is now provider-backed for this bounded seam, while AAK's
 scope-authorization registry remains process-local and fail-closed rather than
 a production authenticated-ingress or durable scope-restoration mechanism.
-Memory Bank writes and the narrow exact-scope acceptance read are
-provider-backed for this bounded seam. The full Retrieval Gate, Recall,
-Relevance, Adaptation, Correction, Cloud Run deployment, and the complete
-Option B kernel remain **not verified**.
+Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
+and minimal context construction are provider-backed for this bounded seam.
+Generalized relevance policy, Correction/supersession, Cloud Run deployment,
+and the complete Option B kernel remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
@@ -84,6 +94,7 @@ Run the accepted local regression tests:
   tests.test_adk_foundation \
   tests.test_managed_sessions \
   tests.test_memory_bank_provider \
+  tests.test_adaptive_recall \
   -v
 ```
 
