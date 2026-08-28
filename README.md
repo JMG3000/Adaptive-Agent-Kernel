@@ -46,7 +46,18 @@ AAK v0.1 supports Python 3.14. The current checkpoint was tested with Python
 Prerequisites:
 
 - Python 3.14;
-- `uv`.
+- `uv` 0.12.5.
+
+Install the tested `uv` release into the persistent user executable directory
+without changing shell profiles:
+
+```bash
+curl -LsSf https://astral.sh/uv/0.12.5/install.sh |
+  env UV_INSTALL_DIR="$HOME/.local/bin" UV_NO_MODIFY_PATH=1 sh
+command -v uv
+command -v uvx
+uv --version
+```
 
 Create the project-local environment from the lockfile:
 
