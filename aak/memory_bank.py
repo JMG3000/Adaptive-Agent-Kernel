@@ -1,30 +1,53 @@
-"""Provider-backed incremental Memory Bank composition."""
+"""Native Memory Bank composition behind the AAK Memory Write Gate."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Protocol
+from dataclasses import dataclass
+from typing import Any, Protocol
 
-from google.adk.events import Event
-from google.adk.memory import VertexAiMemoryBankService
-from google.genai import types
+import agentplatform
 
-from aak.adk_app.application import APP_NAME
 from aak.memory import MemoryWriteGate, MemoryWriteRejected
-from aak.sessions import SessionEvent, SessionService
+from aak.sessions import (
+    AuthenticatedIdentity,
+    AuthenticationError,
+    SessionEvent,
+    SessionService,
+)
 
 
-class MemoryBankProvider(Protocol):
-    async def add_events_to_memory(
+class MemoryBankProviderError(RuntimeError):
+    """The native Memory Bank boundary returned an unusable result."""
+
+
+class NativeMemoryBankProvider(Protocol):
+    async def ingest_events(
         self,
         *,
-        app_name: str,
-        user_id: str,
-        events: tuple[Event, ...],
-        session_id: str,
-        custom_metadata: dict[str, object],
-    ) -> None: ...
+        name: str,
+        scope: dict[str, str],
+        stream_id: str,
+        direct_contents_source: dict[str, object],
+        config: dict[str, bool],
+    ) -> Any: ...
+
+    async def retrieve(
+        self,
+        *,
+        name: str,
+        scope: dict[str, str],
+        simple_retrieval_params: dict[str, int],
+    ) -> Any: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ScopedMemory:
+    """Minimal untrusted Memory Bank result exposed by this proof boundary."""
+
+    memory_id: str
+    fact: str
 
 
 def _require_canonical(value: object, label: str) -> str:
@@ -33,11 +56,31 @@ def _require_canonical(value: object, label: str) -> str:
     return value
 
 
+def _require_resource_segment(value: object, label: str) -> str:
+    canonical = _require_canonical(value, label)
+    if "/" in canonical:
+        raise ValueError(f"{label} must be a resource identifier, not a path")
+    return canonical
+
+
+def native_memory_scope(identity: AuthenticatedIdentity) -> dict[str, str]:
+    """Construct the native provider namespace from authenticated AAK authority."""
+
+    if not isinstance(identity, AuthenticatedIdentity):
+        raise AuthenticationError("authenticated identity is required")
+    if "*" in identity.scope or "*" in identity.user_id:
+        raise AuthenticationError("authenticated memory scope cannot contain '*'")
+    return {
+        "aak_scope": identity.scope,
+        "user_id": identity.user_id,
+    }
+
+
 def _provider_event(
     session_id: str,
     position: int,
     event: SessionEvent,
-) -> Event:
+) -> dict[str, object]:
     roles = {"prompt": "user", "model": "model"}
     try:
         role = roles[event.source]
@@ -58,20 +101,109 @@ def _provider_event(
     event_id = hashlib.sha256(
         f"{session_id}\0{position}\0{payload}".encode()
     ).hexdigest()
-    return Event(
-        id=event_id,
-        author=event.source,
-        content=types.Content(
-            role=role,
-            parts=[types.Part(text=payload)],
-        ),
-    )
+    return {
+        "event_id": event_id,
+        "content": {
+            "role": role,
+            "parts": [{"text": payload}],
+        },
+    }
 
 
-class _ProviderIncrementalMemorySink:
-    def __init__(self, *, provider: MemoryBankProvider, app_name: str) -> None:
+class NativeMemoryBankAdapter:
+    """Native exact-scope Memory Bank write and proof-only read boundary."""
+
+    def __init__(
+        self,
+        *,
+        provider: NativeMemoryBankProvider,
+        resource_name: str,
+    ) -> None:
         self._provider = provider
-        self._app_name = _require_canonical(app_name, "ADK app name")
+        self._resource_name = _require_canonical(
+            resource_name,
+            "Agent Runtime resource name",
+        )
+
+    @property
+    def resource_name(self) -> str:
+        return self._resource_name
+
+    async def _ingest_authorized_events(
+        self,
+        *,
+        user_id: str,
+        scope: str,
+        session_id: str,
+        events: tuple[SessionEvent, ...],
+    ) -> None:
+        identity = AuthenticatedIdentity(user_id=user_id, scope=scope)
+        canonical_session_id = _require_canonical(session_id, "session_id")
+        provider_events = [
+            _provider_event(canonical_session_id, position, event)
+            for position, event in enumerate(events)
+        ]
+        operation = await self._provider.ingest_events(
+            name=self._resource_name,
+            scope=native_memory_scope(identity),
+            stream_id=canonical_session_id,
+            direct_contents_source={"events": provider_events},
+            config={"force_flush": True, "wait_for_completion": True},
+        )
+        if getattr(operation, "error", None):
+            raise MemoryBankProviderError("native Memory Bank ingestion failed")
+        if getattr(operation, "done", None) is not True:
+            raise MemoryBankProviderError(
+                "native Memory Bank ingestion/generation did not complete"
+            )
+
+    async def retrieve_scoped_memories(
+        self,
+        identity: AuthenticatedIdentity,
+        *,
+        limit: int = 100,
+    ) -> tuple[ScopedMemory, ...]:
+        """Read one exact provider scope for acceptance evidence, not agent context."""
+
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+            raise ValueError("memory retrieval limit must be between 1 and 100")
+        expected_scope = native_memory_scope(identity)
+        pager = await self._provider.retrieve(
+            name=self._resource_name,
+            scope=expected_scope,
+            simple_retrieval_params={"page_size": limit},
+        )
+        retrieved: list[ScopedMemory] = []
+        async for item in pager:
+            memory = getattr(item, "memory", None)
+            if memory is None or getattr(memory, "scope", None) != expected_scope:
+                raise MemoryBankProviderError(
+                    "native Memory Bank returned a mismatched or malformed scope"
+                )
+            try:
+                memory_id = _require_canonical(
+                    getattr(memory, "name", None),
+                    "Memory resource name",
+                )
+                fact = _require_canonical(
+                    getattr(memory, "fact", None),
+                    "Memory fact",
+                )
+            except ValueError as error:
+                raise MemoryBankProviderError(
+                    "native Memory Bank returned a malformed memory"
+                ) from error
+            retrieved.append(ScopedMemory(memory_id=memory_id, fact=fact))
+            if len(retrieved) == limit:
+                break
+        return tuple(retrieved)
+
+
+class _NativeIncrementalMemorySink:
+    """Private sink keeping the provider mutation behind MemoryWriteGate."""
+
+    def __init__(self, adapter: NativeMemoryBankAdapter) -> None:
+        self._adapter = adapter
 
     async def add_events_to_memory(
         self,
@@ -81,48 +213,49 @@ class _ProviderIncrementalMemorySink:
         session_id: str,
         events: tuple[SessionEvent, ...],
     ) -> None:
-        canonical_user_id = _require_canonical(user_id, "authenticated user_id")
-        _require_canonical(scope, "authenticated scope")
-        canonical_session_id = _require_canonical(session_id, "session_id")
-        provider_events = tuple(
-            _provider_event(canonical_session_id, position, event)
-            for position, event in enumerate(events)
-        )
-        await self._provider.add_events_to_memory(
-            app_name=self._app_name,
-            user_id=canonical_user_id,
-            events=provider_events,
-            session_id=canonical_session_id,
-            custom_metadata={"force_flush": True},
+        await self._adapter._ingest_authorized_events(
+            user_id=user_id,
+            scope=scope,
+            session_id=session_id,
+            events=events,
         )
 
 
 def build_memory_write_gate(
     *,
     sessions: SessionService,
-    provider: MemoryBankProvider,
-    app_name: str = APP_NAME,
+    adapter: NativeMemoryBankAdapter,
 ) -> MemoryWriteGate:
-    """Compose the only supported provider write path behind the AAK gate."""
+    """Compose the native provider writer behind the existing AAK gate."""
 
-    return MemoryWriteGate(
-        sessions,
-        _ProviderIncrementalMemorySink(provider=provider, app_name=app_name),
-    )
+    return MemoryWriteGate(sessions, _NativeIncrementalMemorySink(adapter))
 
 
-def build_vertex_memory_write_gate(
+def build_native_memory_bank_adapter(
     *,
-    sessions: SessionService,
     project: str,
     location: str,
     agent_runtime_id: str,
-) -> MemoryWriteGate:
-    """Build the gated Vertex Memory Bank writer from explicit coordinates."""
+) -> NativeMemoryBankAdapter:
+    """Build the native Memory Bank adapter from explicit provider coordinates."""
 
-    provider = VertexAiMemoryBankService(
-        project=_require_canonical(project, "Google Cloud project"),
-        location=_require_canonical(location, "Agent Platform location"),
-        agent_engine_id=_require_canonical(agent_runtime_id, "Agent Runtime id"),
+    canonical_project = _require_resource_segment(project, "Google Cloud project")
+    canonical_location = _require_resource_segment(
+        location,
+        "Agent Platform location",
     )
-    return build_memory_write_gate(sessions=sessions, provider=provider)
+    canonical_runtime_id = _require_resource_segment(
+        agent_runtime_id,
+        "Agent Runtime id",
+    )
+    client = agentplatform.Client(
+        project=canonical_project,
+        location=canonical_location,
+    )
+    return NativeMemoryBankAdapter(
+        provider=client.aio.agent_engines.memories,
+        resource_name=(
+            f"projects/{canonical_project}/locations/{canonical_location}/"
+            f"reasoningEngines/{canonical_runtime_id}"
+        ),
+    )

@@ -50,6 +50,8 @@ Last security reconciliation: 2026-08-24.
 | F-042 | A2A/multi-agent behavior is excluded from Option B until separately threat-modeled and validated. | Scope/security choice | DECIDED / DEFERRED | Bossman approval 2026-08-24 + F-034–F-036 |
 | F-043 | Option B will expose incremental Session-event ingestion as the reference persistent-memory path; direct model-controlled `CreateMemory` or uncontrolled continuous-ingestion paths must not bypass the AAK Memory Write Gate. | Security architecture choice | DECIDED | Bossman approval 2026-08-24 + F-026, F-028 |
 | F-044 | Model Armor is approved as defense-in-depth for applicable deployment paths but is not the authorization, memory-integrity, or approval authority. Exact deployment configuration remains implementation-time work. | Security architecture choice | DECIDED | Bossman approval 2026-08-24 + F-029, F-037, F-038 |
+| F-045 | AAK's security-sensitive Memory Bank adapter uses the native API and constructs exact provider scope only as `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}`; the prior `app_name + raw user_id` projection is superseded and remains unmigrated legacy evidence. | Security architecture choice | DECIDED / VALIDATED | Bossman approval 2026-08-28; S-GCP-MEMORY-API; executable AAK tests/provider proof 2026-08-28 |
+| F-046 | One bounded live native Memory Bank proof completed gated incremental ingestion/generation, retrieved the generated Memory in its exact two-key scope, and returned no Memory for separate same-user/wrong-scope and wrong-user/same-scope provider requests. | Implementation/provider evidence | VALIDATED | Executable AAK provider proof 2026-08-28 |
 
 ## Source registry
 

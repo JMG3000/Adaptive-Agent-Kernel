@@ -64,8 +64,8 @@ Current reference path:
 → Google ADK for Python
 → Agent Platform Sessions
 → explicit AAK memory-ingestion policy
-→ incremental/event-subset ingestion through the supported ADK memory-service
-  seam
+→ native incremental/event-subset ingestion with provider scope derived from
+  authenticated AAK `{aak_scope, user_id}` authority
 → Vertex AI Memory Bank
 → structured-profile baseline
 → on-demand episodic retrieval
@@ -264,8 +264,11 @@ As of this state record:
 - Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
 - Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
 - Agent Platform Sessions integration: **VERIFIED — on 2026-08-27, the AAK adapter created exactly one synthetic managed Session with the provider-minimum `86400s` TTL, retrieved it for the authenticated AAK identity, and denied cross-user and same-user/wrong-scope reads before provider access**
-- Memory Bank ingestion: **VERIFIED — on 2026-08-27, one bounded live proof passed one synthetic Session event through the AAK Memory Write Gate to `VertexAiMemoryBankService.add_events_to_memory`; exactly one incremental ingestion request completed against Runtime `3642145461147533312` in `us`**
-- Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and provider-boundary tests pass locally, and the same gated path completed the bounded live ingestion proof; provider-returned data, model data, and Session history do not authorize writes**
+- native Memory Bank adapter: **VERIFIED — the adapter uses `agentplatform.Client(...).aio.agent_engines.memories`, derives the exact provider scope as `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}`, and exposes no supported direct persistent-mutation method outside the Memory Write Gate**
+- Memory Bank ingestion/generation: **VERIFIED — on 2026-08-28, one bounded live proof passed one synthetic selected Session event through the AAK Memory Write Gate to native `ingest_events`; one request used force-flush generation, completed, and produced a generated Memory against Runtime `3642145461147533312` in `us`**
+- native Memory Bank exact-scope isolation: **VERIFIED FOR THE BOUNDED PROVIDER PROOF — the generated Memory was retrieved under its authenticated `{aak_scope, user_id}` scope; separate provider requests using the same user/wrong scope and wrong user/same scope returned no memories**
+- Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the same gated path completed the bounded live ingestion/generation proof; provider-returned data, model data, and Session history do not authorize writes**
+- legacy Memory Bank namespace: **SUPERSEDED / MIGRATION DEBT — the 2026-08-27 `VertexAiMemoryBankService` proof used the old `app_name + raw user_id` projection; AAK does not dual-read, migrate, delete, or use that namespace as native-adapter acceptance evidence**
 - Retrieval Gate: **NOT VERIFIED**
 - authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof; production authenticated ingress and durable AAK scope-authority restoration remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**

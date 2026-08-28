@@ -18,7 +18,8 @@ The repository currently contains locally verified foundations for:
   only at the model/network boundary;
 - an AAK-authorized `VertexAiSessionService` adapter that preserves the
   authenticated user/scope boundary and fails closed before provider access;
-- an AAK-authorized `VertexAiMemoryBankService` adapter that keeps incremental
+- an AAK native Memory Bank adapter that derives the exact provider scope
+  `{aak_scope, user_id}` from authenticated AAK authority and keeps incremental
   provider writes behind the existing Memory Write Gate.
 
 One separately authorized live smoke test also exercised the existing AAK ADK
@@ -27,17 +28,20 @@ model location and received a successful model response. The Agent Platform
 location is independently decided as `us`; the Cloud Run region is unresolved.
 One bounded live managed-Sessions proof also created and retrieved a synthetic
 Session through the AAK adapter and verified that cross-user and wrong-scope
-reads were denied before provider access. One bounded live Memory Bank proof
-also passed one synthetic Session event through the AAK Memory Write Gate and
-completed exactly one incremental provider ingestion request.
+reads were denied before provider access. One bounded live native Memory Bank
+proof also passed one synthetic Session event through the AAK Memory Write
+Gate, completed provider generation, found the generated memory in the
+intended exact scope, and observed no result from provider queries using the
+corresponding wrong-scope and wrong-user scopes.
 
 The local ADK in-memory runner remains temporary execution state. Managed
 Session persistence is now provider-backed for this bounded seam, while AAK's
 scope-authorization registry remains process-local and fail-closed rather than
 a production authenticated-ingress or durable scope-restoration mechanism.
-Memory Bank writes are provider-backed for the bounded ingestion seam. Memory
-retrieval, Recall, Relevance, Adaptation, Correction, Cloud Run deployment, and
-the complete Option B kernel remain **not verified**.
+Memory Bank writes and the narrow exact-scope acceptance read are
+provider-backed for this bounded seam. The full Retrieval Gate, Recall,
+Relevance, Adaptation, Correction, Cloud Run deployment, and the complete
+Option B kernel remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
