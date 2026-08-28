@@ -3,6 +3,6 @@ name = "adaptive-agent-kernel"
 version = "0.1.0"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "google-adk==2.7.1",
+    "google-adk==2.8.0",
     "google-cloud-aiplatform[agent-engines]>=1.148.1,<2",
 ]

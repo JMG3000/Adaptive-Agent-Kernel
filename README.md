@@ -46,7 +46,8 @@ security contract.
 ## Local setup and verification
 
 AAK v0.1 supports Python 3.14. The current checkpoint was tested with Python
-3.14.4 and pins its dependency graph in `uv.lock`.
+3.14.7, pins the project interpreter in `.python-version`, and pins its
+dependency graph in `uv.lock`.
 
 Prerequisites:
 
@@ -67,7 +68,7 @@ uv --version
 Create the project-local environment from the lockfile:
 
 ```bash
-uv sync --locked --python 3.14
+uv sync --locked
 ```
 
 Run the accepted local regression tests:
