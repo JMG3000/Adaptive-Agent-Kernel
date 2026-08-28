@@ -1,354 +1,268 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-26\
-**Purpose:** Mutable source for the current AAK implementation state, approved
-reference architecture, MVP boundary, and immediate engineering objective.
+**Status date:** 2026-08-28  
+**Purpose:** Mutable source for current AAK implementation truth, approved architecture, delivery boundary, and immediate engineering objective.
 
 ## Authority
 
 This file is subordinate to:
-1. explicit current Bossman instructions;
-2. root `AGENTS.md` for durable Codex operating rules;
+1. current explicit Bossman instructions;
+2. root `AGENTS.md` for durable operating rules;
 3. newer verified repository/provider evidence.
 
-Historical chats, deleted files, prompts, Jira/Confluence records, and prior
-assistant statements are provenance, not automatic current implementation
-truth.
+Historical chats, prompts, reports, Jira/Confluence records, and assistant recommendations are provenance, not automatic current truth.
 
-Update this file when verified project state materially changes.
+## Repository and publication state
 
-## Current repository baseline
+The connected GitHub repository is `JMG3000/Adaptive-Agent-Kernel` and its default/production branch is `main`.
 
-Approved documentation baseline for this reconciliation:
+Current directly verified remote state before this documentation publication:
 
-- `AGENTS.md`
-- `docs/codex/PROJECT-STATE.md`
-- `docs/research/FINDINGS_REGISTER.md`
-- `docs/research/security/SECURITY_SOURCE_REGISTER.md`
-- `docs/engineering/DEVELOPMENT-PRACTICES.md`
-- `docs/security/THREAT-MODEL.md`
-- `docs/security/SECURITY-ARCHITECTURE.md`
-- `docs/security/SECURITY-TEST-PLAN.md`
+```text
+GitHub
+└── main
+    └── 90f5d10650066d095e170c74e66642bae998b049
+        docs: record verified Vertex provider state
+```
 
-Codex must still verify that these files and the implementation-state evidence
-below are present in the actual worktree. No CI, deployment configuration, or
-external provider integration should be assumed to exist until Codex verifies
-it directly.
+Newer reproducible Codex evidence establishes a separate validated local engineering line:
 
-## Project identity and Devpost direction
+```text
+feat/memory-bank-provider
+├── 427c5085aaf7e05f79d94d5ca47b87b0263c9a06
+│   └── provider-backed Memory Bank ingestion checkpoint
+└── 34115d3b3815adeacbae921675eae0c9ef96484c
+    └── updated infrastructure baseline
+        ├── Python 3.14.7
+        ├── uv 0.12.5
+        ├── google-adk 2.8.0
+        └── google-cloud-aiplatform[agent-engines] 1.165.1
+```
+
+At the end of the infrastructure-baseline task the local branch/worktree was reported clean and the accepted regressions were `20/20 PASS`.
+
+**Important:** documentation published from the connected GitHub surface does not itself transport or prove the presence of local commits `427c5085…` or `34115d3…` on the remote. Remote publication of those implementation commits remains a separate Git action from the workstation/Codex repository surface.
+
+## Project identity and hackathon direction
 
 - **Project:** Adaptive Agent Kernel (AAK)
 - **Hackathon:** All Things Agentic
-- **Current track:** Track 2 — Collaborative Partner
-- **Implementation strategy:** smallest complete vertical slice first
-- **Approved first implementation boundary:** Option B — scaffold + runnable
-  reference kernel
+- **Track:** Track 2 — Collaborative Partner
+- **Strategy:** smallest complete vertical slices with provider-backed evidence
+- **Reference kernel:** Option B — scaffold + runnable adaptive-memory kernel
 
-The MVP must demonstrate an adaptive collaborative agent, not a generic chat
-wrapper.
+The MVP must demonstrate persistent feedback/memory that changes later behavior, not merely a generic chat wrapper.
 
-The product should:
-1. guide the user and ask useful clarifying questions;
-2. retain relevant information across sessions;
-3. use retained information only when appropriate;
-4. adapt behavior based on learned user context;
-5. accept explicit correction and supersede stale/incorrect beliefs;
-6. produce evidence showing that adaptation actually occurred.
+## Current architecture decision
 
-## Approved reference architecture
+Google ADK remains the application framework. Agent Platform Sessions remains the managed Session provider. Memory Bank remains the single persistent adaptive-memory authority.
 
-Current reference path:
+For AAK's security-sensitive persistent-memory boundary, Bossman has **DECIDED** to use the native/direct Google Memory Bank API rather than making `VertexAiMemoryBankService` define AAK's provider authorization namespace.
 
-`gemini-3.5-flash`
-→ Vertex AI
-→ Google ADK for Python
-→ Agent Platform Sessions
-→ explicit AAK memory-ingestion policy
-→ incremental/event-subset ingestion through the supported ADK memory-service
-  seam
-→ Vertex AI Memory Bank
-→ structured-profile baseline
-→ on-demand episodic retrieval
-→ explicit correction precedence
-→ agent response
+Canonical direction:
 
-Current location decisions:
+```text
+AUTHENTICATED AAK AUTHORITY
+        (aak_scope, user_id)
+                 │
+                 ▼
+        MEMORY WRITE GATE
+                 │
+                 ▼
+      AAK NATIVE MEMORY ADAPTER
+      agentplatform.Client().aio
+        .agent_engines.memories
+                 │
+                 ▼
+        GOOGLE MEMORY BANK
+     native exact scope dictionary
+       {aak_scope, user_id}
+                 │
+                 ▼
+          RETRIEVAL GATE
+                 │
+                 ▼
+          CONTEXT BUILDER
+                 │
+                 ▼
+              GEMINI
+```
+
+Provider scope must be constructed from authenticated AAK authority. Prompt/model/memory/tool content cannot supply or replace those authority fields.
+
+The previously proposed synthetic/hashed provider-`user_id` projection is **SUPERSEDED** by the native-scope decision unless a verified platform blocker forces a new Bossman decision.
+
+## Location decisions
 
 - `VERTEX_MODEL_LOCATION = us` — **DECIDED**
 - `AGENT_PLATFORM_LOCATION = us` — **DECIDED**
 - `CLOUD_RUN_REGION` — **UNRESOLVED**
 
-These are separate configuration decisions. Do not infer a Cloud Run region
-from either approved `us` location.
+Do not infer Cloud Run region from the other two locations.
 
-Preserve these conceptual boundaries:
+## Current verified implementation/evidence
 
-- **Session state:** current/resumable interaction state.
-- **Episodic memory:** relevant persisted information available across sessions.
-- **Structured profile:** typed current representation of selected evolving
-  user preferences/context.
-- **Correction state:** explicit user corrections and supersession of stale
-  beliefs.
-- **Application data:** authoritative non-memory records if later required.
+| Capability | State | Evidence boundary |
+|---|---|---|
+| Root repository/Codex guidance | PRESENT | repository evidence |
+| Gemini/Vertex invocation | VERIFIED | live provider interaction |
+| Managed Agent Platform Sessions | VERIFIED | provider-backed |
+| Authenticated cross-user Session isolation | VERIFIED | bounded provider seam |
+| Authenticated wrong-scope Session isolation | VERIFIED | bounded provider seam |
+| Memory Write Gate | VERIFIED | provider-backed write seam |
+| Managed Memory Bank incremental ingestion | VERIFIED | live provider ingestion |
+| Persistent `uv` | VERIFIED | `0.12.5` |
+| Project Python baseline | VERIFIED | `3.14.7`, `.python-version` in local checkpoint |
+| Google ADK baseline | VERIFIED | `2.8.0` in local checkpoint |
+| Cloud AI Platform client | VERIFIED | `1.165.1` in local checkpoint |
+| Dependency consistency | VERIFIED | 85 lock records / 82 compatible installed packages |
+| Accepted regressions | VERIFIED | 20/20 PASS at local infrastructure checkpoint |
+| Point-in-time dependency audits | VERIFIED WITH QUALIFICATION | no known PyPI/OSV findings on 2026-08-28 |
+| Native Memory Bank client methods | VERIFIED | `ingest_events`, `generate`, `retrieve` with explicit scope |
+| Native explicit-scope read capability | VERIFIED | live empty retrieval using `{aak_scope, user_id}` |
+| Native adapter production implementation | NOT VERIFIED | next slice |
+| Generated Memory Bank memory | NOT VERIFIED | next slice |
+| Generated-memory retrieval isolation | NOT VERIFIED | next slice |
+| Retrieval Gate | NOT VERIFIED | later slice |
+| Recall | NOT VERIFIED | later slice |
+| Relevance | NOT VERIFIED | later slice |
+| Visible Adaptation | NOT VERIFIED | later slice |
+| Correction/supersession | NOT VERIFIED | later slice |
+| Restart-safe authority restoration | NOT VERIFIED | later slice |
+| Cloud Run deployment | NOT VERIFIED | later slice |
 
-Do not introduce a second memory/database authority without an approved,
-demonstrated need.
+A successful ingestion call is not proof that a generated memory exists or is retrievable.
 
-## Memory behavior
+## Infrastructure baseline
 
-For the Option B reference path:
+Validated local target baseline:
 
-- memory persistence must be explicit and testable;
-- prefer incremental/event-subset ingestion;
-- do not assume persistence occurs merely because a memory service is
-  configured;
-- retrieve episodic memory on demand rather than globally preloading memory;
-- explicit correction must take precedence over stale or inferred memory;
-- ingestion, retrieval, adaptation, and correction must be observable in
-  tests/evidence.
+```text
+Python                                  3.14.7
+uv                                      0.12.5
+google-adk                              2.8.0
+google-cloud-aiplatform[agent-engines]  1.165.1
+```
 
-Whole-session ingestion remains a controlled comparison/fallback path when
-justified; it is not the default reference mechanism.
+The infrastructure update intentionally did not:
+- replace system `/usr/bin/python3`;
+- upgrade `uv`;
+- upgrade `google-cloud-aiplatform`;
+- add another SDK/database/vector store;
+- create another Runtime or Memory Bank;
+- change IAM or Cloud Run;
+- implement the native adapter.
 
-## Behavioral acceptance criteria
+## Development and DevSecOps delivery model
 
-The first runnable reference kernel must produce reproducible pass/fail
-evidence for five regression families:
+AAK separates Git branches from deployment environments.
 
-1. **Cold Start** — asks useful questions rather than inventing user context.
-2. **Recall** — retrieves appropriate retained information in a later session.
-3. **Relevance** — does not apply unrelated memory.
-4. **Adaptation** — retained information changes behavior observably.
-5. **Correction** — explicit correction supersedes stale or incorrect beliefs.
+```text
+short-lived task branch
+   feat/* | fix/* | docs/* | build/*
+                │
+                ▼
+       validation + review
+                │
+                ▼
+      main  ← production/release branch
+                │
+                ▼
+      build one reviewed artifact
+                │
+          ┌─────┴─────┐
+          ▼           ▼
+     Test environment  package/OCI evidence
+          │
+          ▼
+   Bossman promotion approval
+          │
+          ▼
+   Production environment
+```
 
-Import success, server startup, or HTTP 200 alone does not satisfy the MVP
-definition of done.
+Decisions:
+- `main` is the production/release branch and should receive reviewed, validated changes rather than routine direct development.
+- Use short-lived feature/slice branches for implementation and documentation work.
+- Test and Production are environments; persistent `dev` and `test` Git branches remain **DEFERRED** until an operational need is demonstrated.
+- Promote the exact tested SHA/artifact whenever practical; do not rebuild different source between stages.
+- Package/OCI builds should be introduced from validated local build commands once a real distributable artifact exists. CI must reproduce the repository's actual development contract rather than exist for ceremony.
+- Push, merge, deployment, IAM, and external-state mutations remain Bossman-authorized consequential actions.
 
-## Development methodology
+## Security boundary
 
-The following engineering practices are **DECIDED** for AAK:
-
-- pair programming / human-in-the-loop development;
-- TDD using Red → Green → Refactor;
-- ATDD for user-visible and cross-component acceptance behavior;
-- smallest complete vertical slices;
-- Simple Design / YAGNI;
-- continuous refactoring from a green baseline;
-- continuous integration when CI is introduced;
-- secure-by-design testing;
-- short retrospectives after meaningful slices;
-- evidence-based completion.
-
-Detailed engineering workflow:
-`docs/engineering/DEVELOPMENT-PRACTICES.md`
-
-Current approved environment/delivery path:
-
-native Linux development
-→ rootless Podman clean-room build/test validation
-→ OCI artifact
-→ CI/CD when authorized
-→ Cloud Run deployment
-
-### Hackathon delivery strategy
-
-Through the hackathon deadline, AAK uses short-lived feature/slice branches
-integrated into reviewed `main`.
-
-- Development → Test → Production remains the approved environment
-  progression.
-- Test and Production are environments; they do not require persistent Git
-  branches.
-- The previously considered persistent `dev` → `test` → `main` branch topology
-  is **DEFERRED**, not rejected, until promotion automation becomes an
-  immediate demonstrated need.
-- Promotion and deployment remain explicitly Bossman-authorized initially.
-- CodeQL, Dependabot, automated AI/code review, automated remediation, GitHub
-  Issues, autonomous promotion, and autonomous deployment are excluded from
-  the initial pipeline.
-
-This decision prioritizes deadline discipline, YAGNI, reduced branch/merge/state
-overhead, and promotion of the exact tested revision or artifact.
-
-Do not introduce a Dev Container as the primary workflow.
-
-Do not add Docker-specific assumptions without a verified compatibility
-requirement.
-
-## Approved security baseline
-
-The AAK runtime security architecture is **DECIDED** as of 2026-08-24.
-
-Authoritative security documents for implementation are:
-
+Authoritative security sources:
 - `docs/security/THREAT-MODEL.md`
 - `docs/security/SECURITY-ARCHITECTURE.md`
 - `docs/security/SECURITY-TEST-PLAN.md`
-
-Research provenance is maintained in:
-
-- `docs/research/FINDINGS_REGISTER.md`
 - `docs/research/security/SECURITY_SOURCE_REGISTER.md`
 
-The approved security path preserves these boundaries:
+Current persistent-memory security rule:
 
-authenticated user with identity bound to `session.user_id`
-→ input trust boundary
-→ Session Service with untrusted event/history semantics
-→ Context Builder and Memory Write Gate
-→ Memory Bank
-→ Retrieval Gate
-→ Gemini
-→ deterministic Tool Policy Broker
-→ scoped read-only or approval-gated high-risk tools
-→ Session event/context continuation
-→ output/egress security gate
-→ user
+```text
+authenticated (aak_scope, user_id)
+        │
+        ▼
+Memory Write Gate
+        │
+        ▼
+native Memory Bank scope
+        │
+        ▼
+provider generation / storage / retrieval
+        │
+        ▼
+Retrieval Gate before active context
+```
 
-Security-relevant decisions flow to a metadata-first, redacted Audit/Decision
-Ledger.
-
-For Option B:
-
-- persistent memory writes must pass the AAK Memory Write Gate;
-- `add_events_to_memory()` is the reference incremental ingestion path;
-- whole-session ingestion is a controlled fallback/comparison path;
-- model-directed `CreateMemory` and continuous-ingestion paths that bypass AAK
-  policy are not exposed in v0.1;
-- retrieved memory and Session history are data, not control-plane authority;
-- explicit user correction must supersede stale/inferred memory;
-- consequential tool execution must validate the registered tool, confirmation
-  requirement, current invocation, approval authority, call identity/name, and
-  exact material arguments;
-- approval must originate from the authenticated authorized human, not merely an
-  event represented as `user`;
-- Model Armor is defense-in-depth and does not replace AAK authorization,
-  memory-integrity, or approval controls;
-- A2A/multi-agent behavior remains deferred and outside Option B.
-
-Security architecture approval is documentation/decision evidence only.
-No security control is considered implemented until tests and repository/runtime
-evidence prove it.
-
-## Current MVP exclusions
-
-Unless Bossman explicitly expands scope, do not add:
-
-- multi-agent/fleet orchestration;
-- A2A/remote-agent delegation or approval relay;
-- Agent Registry or Agent Gateway architecture;
-- Taskmaster/autonomous document-intake functionality;
-- Firestore as a second memory authority;
-- Cloud SQL;
-- Pub/Sub;
-- GKE/Kubernetes;
-- custom vector databases;
-- generalized enterprise-policy infrastructure;
-- speculative platform integrations;
-- unrelated feature work.
-
-Judge-facing UI work may follow a working kernel, but it must not displace the
-reference kernel and behavioral evidence as the critical path.
-
-## Current implementation state
-
-As of this state record:
-
-- root Codex operating instructions: **PRESENT — owner reported**
-- project-state record: **PRESENT — owner reported**
-- Python runtime support: **DECIDED — AAK v0.1 supports Python 3.14.x; the current tested interpreter is Python 3.14.4 and the project constraint is `>=3.14,<3.15`**
-- Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.4, `google-adk==2.7.1`, `pyproject.toml`, and `uv.lock`; all 59 lock records inspected, 56 Linux-target packages installed without conflicts, and 2 platform-conditional records separately reviewed**
-- dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete active and platform-conditional lock sets on 2026-08-24; this is point-in-time evidence, not a permanent safety guarantee**
-- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App foundation are present**
-- runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
-- Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
-- Agent Platform Sessions integration: **NOT VERIFIED**
-- Memory Bank ingestion: **NOT VERIFIED**
-- Memory Write Gate: **LOCALLY VERIFIED — SEC-MW-001–004 pass against a fake incremental event sink; live provider behavior remains unverified**
-- Retrieval Gate: **NOT VERIFIED**
-- authenticated identity/session binding: **LOCALLY VERIFIED — Slice 1 in-memory seam; provider authentication and Session adapter remain unverified**
-- deterministic Tool Policy Broker: **NOT VERIFIED**
-- output/egress security gate: **NOT VERIFIED**
-- Audit/Decision Ledger: **NOT VERIFIED**
-- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES and Slice 2 SEC-MW-001–004 tests pass locally**
-- structured-profile implementation: **NOT VERIFIED**
-- episodic retrieval: **NOT VERIFIED**
-- correction precedence: **NOT VERIFIED**
-- five regression families: **NOT VERIFIED — Cold Start, Recall, Relevance, Adaptation, and Correction remain unverified**
-- rootless Podman/OCI project validation: **NOT VERIFIED**
-- CI/CD: **NOT VERIFIED**
-- Cloud Run deployment: **NOT VERIFIED**
-- final Devpost submission evidence: **NOT VERIFIED**
-
-Do not promote any item based only on historical artifacts or plans.
-
-## Freshness-sensitive implementation facts
-
-Before consequential implementation, dependency locking, or deployment,
-revalidate current primary/provider documentation when the task depends on:
-
-- exact Gemini model availability/model ID;
-- Google ADK interfaces/package versions;
-- Agent Platform Sessions interfaces;
-- Memory Bank ingestion/retrieval/profile APIs;
-- Google Cloud supported locations/regions;
-- Cloud Run deployment requirements;
-- current Devpost rules/submission requirements.
-
-Do not silently substitute a newer model, API, library, or service merely
-because it exists.
+Memory Bank/provider scope is defense in depth, not a replacement for AAK authorization. Retrieved memory remains untrusted data.
 
 ## Immediate engineering objective
 
-Reconcile the approved security documents into the worktree, then bootstrap and
-prove the smallest runnable Option B reference path using security TDD/ATDD.
+The next bounded behavioral slice is:
 
-The next bounded implementation should:
+```text
+34115d3… green infrastructure baseline
+        │
+        ▼
+AAK native Memory Bank adapter
+        │
+        ▼
+explicit {aak_scope, user_id}
+        │
+        ▼
+incremental authorized ingestion
+        │
+        ▼
+bounded generation completion
+        │
+        ▼
+actual generated-memory retrieval
+        │
+        ├── same authority → retrievable
+        ├── same user / wrong scope → not retrievable
+        └── same scope / wrong user → not retrievable
+```
 
-1. inspect the repository/workstation and verify this documentation baseline;
-2. implement the first security acceptance tests before production behavior;
-3. establish authenticated identity → `session.user_id` binding;
-4. prove Session isolation and fail-closed identity/scope handling;
-5. implement the Memory Write Gate around the supported incremental event-ingestion seam;
-6. add the Retrieval Gate, correction precedence, and Context Builder incrementally;
-7. implement the Tool Policy Broker with mocked/test tools before real consequential tools;
-8. add egress/audit controls and the functional + security regression families;
-9. verify current dependency/API compatibility before locking versions or deploying;
-10. retain reproducible implementation evidence and stop rather than expanding into deferred scope.
-
-The immediate goal is a verified adaptive-memory reference kernel, not a
-polished full product.
+Do not expand this next slice into the full Retrieval Gate, Context Builder, Adaptation, Correction, Cloud Run, IAM Conditions, structured profiles, another datastore, or unrelated refactoring.
 
 ## Documentation architecture
 
-Follow progressive disclosure:
+- `AGENTS.md` — durable Codex operating map
+- `docs/codex/PROJECT-STATE.md` — mutable implementation truth and immediate objective
+- `docs/engineering/DEVELOPMENT-PRACTICES.md` — engineering/DevSecOps method
+- `docs/research/FINDINGS_REGISTER.md` — claim-level research evidence and decisions
+- `docs/research/CROSS-ANALYSIS_REGISTER.md` — reconciliation/drift/decision-support record
+- `docs/research/security/SECURITY_SOURCE_REGISTER.md` — security provenance
+- `docs/security/*` — approved security requirements and architecture
 
-- `AGENTS.md` = durable Codex operating map and invariants.
-- `docs/codex/PROJECT-STATE.md` = current mutable state and active architecture
-  boundary.
-- `README.md` = human/setup/submission entry point when created.
-- `docs/requirements/` = binding requirements when created.
-- `docs/architecture/` = durable architecture decisions when they become
-  stable enough to separate from this state file.
-- `docs/research/` = validated external/platform findings and provenance.
-- `docs/research/security/` = security-specific source catalog and research provenance.
-- `docs/engineering/` = approved development methodology and engineering
-  workflow.
-- `docs/security/` = approved threat model, security architecture, and security
-  acceptance/test requirements.
-- `docs/evaluation/` = broader regression definitions/evidence when created.
-- immediate Codex prompt = one bounded task.
-
-Do not duplicate the same detailed rule across these layers.
+Do not maintain independently edited competing copies of the same technical truth.
 
 ## Update rule
 
-When implementation evidence changes:
-- update the relevant implementation-state entry;
-- move stable architectural knowledge into `docs/architecture/` when useful;
-- keep this file focused on current state and immediate execution direction;
-- remove stale statements rather than preserving them for historical
-  continuity.
-
-Git history should preserve the history; this file should describe the current
-state.
+When executable evidence changes:
+1. update the relevant current-state claim;
+2. reconcile claim-level research when platform facts changed;
+3. update security architecture/tests if a trust-boundary design changed;
+4. record cross-source conflicts/drift in the Cross-Analysis Register;
+5. keep historical execution evidence in Git history/provenance rather than preserving stale current-state prose.

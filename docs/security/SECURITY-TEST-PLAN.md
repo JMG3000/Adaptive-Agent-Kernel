@@ -1,23 +1,20 @@
 # Adaptive Agent Kernel — Security Test Plan
 
-**Status:** DECIDED acceptance contract / tests not yet implemented\
-**Date:** 2026-08-24\
+**Status:** DECIDED acceptance contract / implementation evidence tracked separately  
+**Date:** 2026-08-28  
 **Method:** TDD + ATDD, smallest complete vertical slices.
 
 ## Purpose
 
-Convert the approved threat model and security architecture into executable
-behavior. These tests are requirements, not claims that implementation exists.
+Convert the approved threat model and security architecture into executable behavior. Tests are requirements, not claims that implementation exists.
 
-Every production behavior protected here begins with RED, verifies the expected
-failure, then proceeds to the minimum GREEN implementation and refactor from a
-green baseline.
+For production behavior changes use RED → verify expected failure → GREEN minimum implementation → verify → REFACTOR from green.
 
 ## Priority convention
 
-- **P0:** must pass before the protected capability is usable.
-- **P1:** must pass before Option B is considered functionally/security complete.
-- **P2:** deployment/defense-in-depth validation before public/runtime exposure.
+- **P0:** required before the protected capability is usable.
+- **P1:** required before Option B is functionally/security complete.
+- **P2:** deployment/defense-in-depth validation before production exposure.
 
 ## Slice 1 — Authenticated identity and Session integrity
 
@@ -25,9 +22,9 @@ green baseline.
 |---|---:|---|
 | SEC-ID-001 | P0 | authenticated user A creates/uses only Session state bound to user A |
 | SEC-ID-002 | P0 | user B cannot read/write user A Session through supported AAK interfaces |
-| SEC-ID-003 | P0 | prompt/model/retrieved memory cannot redefine `session.user_id` |
+| SEC-ID-003 | P0 | prompt/model/retrieved memory cannot redefine Session identity |
 | SEC-ID-004 | P0 | caller-supplied mismatched identity/scope fails closed |
-| SEC-SES-001 | P0 | Session-history content is never treated as authorization merely because it exists in history |
+| SEC-SES-001 | P0 | Session history is never treated as authorization merely because it exists |
 
 ## Slice 2 — Memory Write Gate
 
@@ -35,17 +32,56 @@ green baseline.
 |---|---:|---|
 | SEC-MW-001 | P0 | selected authorized Session event can reach incremental Memory Bank ingestion |
 | SEC-MW-002 | P0 | cross-user/mismatched-scope memory write is rejected |
-| SEC-MW-003 | P0 | model-controlled `CreateMemory` is unavailable through the v0.1 agent/tool surface |
-| SEC-MW-004 | P0 | all enabled persistent-memory mutation paths invoke the AAK write policy |
-| SEC-MW-005 | P1 | explicit correction is recorded so stale/inferred memory no longer governs current behavior |
-| SEC-MW-006 | P1 | origin/provenance authority is not upgraded merely by model summarization or semantic confidence |
-| SEC-MW-007 | P1 | configured sensitive-data policy prevents prohibited secret material from ordinary memory persistence |
+| SEC-MW-003 | P0 | model-controlled direct memory creation is unavailable as a v0.1 bypass |
+| SEC-MW-004 | P0 | all enabled persistent-memory mutation paths invoke AAK write policy |
+| SEC-MW-005 | P1 | explicit correction prevents stale/inferred memory from governing current behavior |
+| SEC-MW-006 | P1 | model summarization/semantic confidence cannot upgrade origin authority |
+| SEC-MW-007 | P1 | configured sensitive-data policy blocks prohibited secret persistence |
+
+## Slice 2A — Native Memory Bank provider scope and generated-memory proof
+
+This slice validates the newly decided native Memory Bank provider boundary before the full Retrieval Gate is implemented.
+
+| ID | Pri | Acceptance behavior |
+|---|---:|---|
+| SEC-MB-001 | P0 | native provider write/read scope is constructed only from authenticated `{aak_scope, user_id}` |
+| SEC-MB-002 | P0 | same user + intended scope can retrieve the generated memory produced from its authorized event |
+| SEC-MB-003 | P0 | same user + different scope cannot retrieve the first scope's generated memory through the real provider |
+| SEC-MB-004 | P0 | different user + same scope cannot retrieve the first user's generated memory through the real provider |
+| SEC-MB-005 | P0 | ingestion success is not reported as generated-memory success until the generated memory is actually observed |
+| SEC-MB-006 | P0 | bounded generation/retrieval timeout or backend failure is surfaced distinctly rather than converted to ordinary `NO_MATCH` |
+| SEC-MB-007 | P1 | old raw-user/provider namespace is not silently dual-read or merged into the new native scope |
+
+Required live-provider evidence path:
+
+```text
+authenticated (aak_scope,user_id)
+        │
+        ▼
+Memory Write Gate
+        │
+        ▼
+native scoped ingestion
+        │
+        ▼
+bounded generation
+        │
+        ▼
+actual generated-memory retrieval
+        │
+   ┌────┼────────────┐
+   ▼    ▼            ▼
+correct wrong-scope wrong-user
+FOUND   NOT FOUND    NOT FOUND
+```
+
+Provider-backed negative cases cannot be replaced by local-only Session denials.
 
 ## Slice 3 — Retrieval Gate
 
 | ID | Pri | Acceptance behavior |
 |---|---:|---|
-| SEC-MR-001 | P0 | retrieval is constrained to the authenticated user's approved scope |
+| SEC-MR-001 | P0 | retrieval is authorized and constrained to the authenticated AAK scope before lookup |
 | SEC-MR-002 | P1 | unrelated memory is not inserted into active context |
 | SEC-MR-003 | P1 | superseded/stale memory is excluded or loses precedence to explicit correction |
 | SEC-MR-004 | P1 | retrieved memory cannot authorize a tool or replace system/developer policy |
@@ -55,7 +91,7 @@ green baseline.
 
 | ID | Pri | Acceptance behavior |
 |---|---:|---|
-| SEC-CTX-001 | P0 | user/Session/memory content claiming to be a system instruction remains untrusted data |
+| SEC-CTX-001 | P0 | user/Session/memory content claiming to be system policy remains untrusted data |
 | SEC-CTX-002 | P1 | provenance/source class remains available for security decisions |
 | SEC-CTX-003 | P1 | internal tool/error data does not silently become control-plane policy |
 
@@ -66,7 +102,7 @@ Use mocked/test tools first.
 | ID | Pri | Acceptance behavior |
 |---|---:|---|
 | SEC-TP-001 | P0 | unregistered tool call is denied |
-| SEC-TP-002 | P0 | registered tool not requiring/meeting its confirmation policy is denied when policy requires approval |
+| SEC-TP-002 | P0 | confirmation policy is enforced when required |
 | SEC-TP-003 | P0 | missing/orphaned original pending invocation is denied |
 | SEC-TP-004 | P0 | wrong call ID is denied |
 | SEC-TP-005 | P0 | changed tool name is denied |
@@ -82,14 +118,12 @@ Use mocked/test tools first.
 | ID | Pri | Acceptance behavior |
 |---|---:|---|
 | SEC-EG-001 | P0 | cross-user memory/session content is not emitted to another user |
-| SEC-EG-002 | P1 | prohibited secret material is blocked/redacted from ordinary egress according to policy |
-| SEC-AUD-001 | P1 | allow/deny decisions produce audit metadata with stable reason/reference fields |
+| SEC-EG-002 | P1 | prohibited secret material is blocked/redacted according to policy |
+| SEC-AUD-001 | P1 | allow/deny/error decisions produce audit metadata with stable reason/reference fields |
 | SEC-AUD-002 | P1 | audit records do not contain raw configured test secrets or complete prompt/memory payloads by default |
 | SEC-AUD-003 | P1 | approval/tool/memory decisions can be correlated by non-secret identifiers |
 
 ## Slice 7 — Functional regression + security companions
-
-Pair the original behavioral families with security properties:
 
 | Functional family | Security companion |
 |---|---|
@@ -99,18 +133,7 @@ Pair the original behavioral families with security properties:
 | Adaptation | adaptation cannot silently promote poisoned data to authority |
 | Correction | explicit correction survives stale-memory influence and later retrieval |
 
-Dedicated adversarial regressions:
-
-1. memory poisoning;
-2. cross-user scope isolation;
-3. indirect prompt injection;
-4. Session-history authority/confirmation injection;
-5. secret persistence/egress prevention;
-6. unauthorized tool invocation;
-7. identity/scope substitution;
-8. malformed memory/event data;
-9. approval replay/argument substitution;
-10. delayed/sleeper memory activation.
+Dedicated adversarial regressions include memory poisoning, cross-scope/cross-user isolation, indirect prompt injection, Session-history authority injection, secret persistence/egress, unauthorized tool invocation, identity/scope substitution, malformed memory/event data, approval replay/argument substitution, and delayed/sleeper memory activation.
 
 ## Slice 8 — Dependency/deployment hardening
 
@@ -118,35 +141,34 @@ Dedicated adversarial regressions:
 |---|---:|---|
 | SEC-DEP-001 | P2 | resolved ADK version is outside known vulnerable ranges relevant to deployment |
 | SEC-DEP-002 | P2 | dependency lock is reproducible and uses only required extras |
-| SEC-DEP-003 | P2 | SBOM/security scan evidence exists for the candidate OCI artifact |
+| SEC-DEP-003 | P2 | SBOM/security-scan evidence exists for the candidate OCI artifact |
 | SEC-RUN-001 | P2 | Cloud Run ingress requires the approved authentication boundary |
 | SEC-RUN-002 | P2 | runtime service identity has only reviewed required permissions |
 | SEC-RUN-003 | P2 | Memory Bank/Sessions access is constrained to reviewed IAM/scope policy |
 | SEC-RUN-004 | P2 | Model Armor behavior/coverage is tested where enabled and no test treats it as authorization |
-| SEC-RUN-005 | P2 | logging/observability validation proves configured secrets are not dumped into ordinary logs |
+| SEC-RUN-005 | P2 | logging validation proves configured secrets are not dumped into ordinary logs |
+| SEC-RUN-006 | P2 | Test and Production receive the same reviewed artifact/digest unless an explicitly reviewed rebuild is required |
 
-## Test evidence requirements
+## Evidence requirements
 
-For each TDD behavior record the narrowest applicable evidence:
+For each applicable behavior retain:
 - test ID and requirement;
-- RED command/output demonstrating expected missing behavior;
+- RED command/output for the expected missing behavior;
 - GREEN command/output;
-- relevant surrounding suite;
+- relevant surrounding tests;
+- provider/emulator/mock boundary;
 - security/adversarial result;
 - changed files/diff;
-- unresolved assumptions;
-- provider/emulator/mock boundary used.
+- unresolved assumptions.
 
-Do not use mocked success as proof of live Google IAM/Memory Bank/Cloud Run
-behavior. Live/provider tests must be separately identified.
+Do not use mocked success as proof of live Google IAM/Memory Bank/Cloud Run behavior. Do not use successful ingestion as proof that generated memory exists. Do not use an HTTP/process success alone as evidence that a security property holds.
 
 ## Stop conditions
 
-Stop and return to Bossman before implementation expansion if:
-- a primary source contradicts the approved architecture;
-- a required Google API forces a material new service/authority;
+Stop and return to Bossman before expansion if:
+- primary/provider evidence contradicts the approved architecture;
+- the native provider API forces a material new service/authority;
 - a security invariant cannot be enforced with the approved stack;
-- a vulnerability affects the chosen dependency version and no safe compatible
-  version is available;
-- a test requires A2A, MCP runtime integration, or another currently deferred
-  boundary.
+- a vulnerability affects the chosen dependency baseline with no safe compatible path;
+- tests require A2A, MCP runtime integration, or another deferred boundary;
+- remote/local Git state cannot be reconciled for a consequential promotion.

@@ -1,62 +1,105 @@
 # Adaptive Agent Kernel
 
-Adaptive Agent Kernel (AAK) is a Track 2 — Collaborative Partner project for
-the All Things Agentic Hackathon. The approved implementation direction is the
-Option B reference kernel, developed as small, secure, testable vertical
-slices.
+Adaptive Agent Kernel (AAK) is a Track 2 — Collaborative Partner project for the All Things Agentic Hackathon. AAK is being developed as small, secure, evidence-backed vertical slices.
 
-## Current local checkpoint
+## Current state
 
-The repository currently contains locally verified foundations for:
+The connected GitHub `main` branch is the production/release line. Newer validated engineering evidence exists on the local `feat/memory-bank-provider` line and is being reconciled into repository documentation without falsely claiming unpublished commits are already on GitHub.
 
-- authenticated identity and Session isolation;
-- the SEC-MW-001–004 Memory Write Gate around a fake incremental-memory sink;
-- a Google ADK `Agent` and `App` configured for `gemini-3.5-flash` through
-  explicit Vertex AI project and model-location inputs;
-- deterministic ADK execution through `InMemoryRunner`, with a fake `BaseLlm`
-  only at the model/network boundary.
+Latest validated local engineering checkpoint:
 
-One separately authorized live smoke test also exercised the existing AAK ADK
-application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
-model location and received a successful model response. The Agent Platform
-location is independently decided as `us`; the Cloud Run region is unresolved.
+```text
+feat/memory-bank-provider
+├── 427c5085…  provider-backed Memory Bank ingestion checkpoint
+└── 34115d3…  updated infrastructure baseline
+    ├── Python 3.14.7
+    ├── uv 0.12.5
+    ├── google-adk 2.8.0
+    └── google-cloud-aiplatform[agent-engines] 1.165.1
+```
 
-The local ADK in-memory runner remains temporary execution state, not the
-authoritative AAK Session or persistent-memory implementation. Managed Agent
-Platform Sessions, Memory Bank and provider-backed memory, Recall, Relevance,
-Adaptation, Correction, Cloud Run deployment, and the complete Option B kernel
-remain **not verified**.
+At `34115d3…`, the accepted regression suite was `20/20 PASS`, dependency/lock consistency passed, and the worktree was reported clean.
 
-See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
-implementation boundary and [`docs/security/`](docs/security/) for the approved
-security contract.
+Validated provider progress includes:
+- real Gemini/Vertex execution;
+- managed Agent Platform Sessions;
+- bounded cross-user and wrong-scope Session isolation;
+- provider-backed Memory Write Gate behavior;
+- managed Memory Bank incremental ingestion;
+- live native Memory Bank retrieval capability using explicit `{aak_scope, user_id}` scope.
 
-## Local setup and verification
+Still not verified:
+- the production native Memory Bank adapter;
+- generated-memory retrieval/isolation;
+- Retrieval Gate;
+- Recall, Relevance, visible Adaptation, and Correction;
+- restart-safe authority restoration;
+- Cloud Run deployment.
 
-AAK v0.1 supports Python 3.14. The current checkpoint was tested with Python
-3.14.4 and pins its dependency graph in `uv.lock`.
+See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for current implementation truth and [`docs/security/`](docs/security/) for the approved security contract.
+
+## Current memory architecture direction
+
+Bossman has decided that AAK will use the native/direct Google Memory Bank API for its security-sensitive persistent-memory boundary so AAK authority remains explicit:
+
+```text
+authenticated (aak_scope, user_id)
+        │
+        ▼
+Memory Write Gate
+        │
+        ▼
+AAK native Memory Bank adapter
+        │
+        ▼
+Google Memory Bank exact native scope
+        │
+        ▼
+Retrieval Gate
+        │
+        ▼
+Gemini
+```
+
+The native adapter must not accept authority fields from prompt/model/memory/tool content.
+
+## Local setup
+
+AAK v0.1 supports Python 3.14.x. The latest validated local baseline uses Python 3.14.7 and a project `.python-version` pin.
 
 Prerequisites:
+- `uv`;
+- access to the repository's configured Python version through `uv`.
 
-- Python 3.14;
-- `uv`.
-
-Create the project-local environment from the lockfile:
-
-```bash
-uv sync --locked --python 3.14
-```
-
-Run the accepted local regression tests:
+Create/synchronize the project environment from the lockfile:
 
 ```bash
-.venv/bin/python -m unittest \
-  tests.test_identity_session \
-  tests.test_memory_write_gate \
-  tests.test_adk_foundation \
-  -v
+uv sync --locked
 ```
 
-These local regression tests do not authenticate to Google Cloud and do not by
-themselves prove live Vertex AI execution. No Google Cloud project or Vertex
-location is defaulted by the application.
+Run the repository's accepted tests according to `AGENTS.md` and `docs/engineering/DEVELOPMENT-PRACTICES.md`. Provider-backed tests must be reported separately from local/mock tests.
+
+## Delivery model
+
+```text
+short-lived feat/* | fix/* | docs/* | build/*
+                    │
+                    ▼
+             validate + review
+                    │
+                    ▼
+                  main
+             production/release
+                    │
+                    ▼
+        build one reviewed artifact
+                    │
+             Test environment
+                    │
+          Bossman promotion approval
+                    │
+                    ▼
+          Production environment
+```
+
+Test and Production are environments, not permanent Git branches. Persistent `dev`/`test` branches remain deferred until there is a demonstrated operational need.

@@ -1,250 +1,223 @@
 # Adaptive Agent Kernel — Security Architecture
 
-**Status:** DECIDED baseline / implementation not yet verified\
-**Date:** 2026-08-24\
+**Status:** DECIDED baseline / implementation evidence tracked separately  
+**Date:** 2026-08-28  
 **Scope:** Option B reference kernel.
 
 ## Approved conceptual architecture
 
 ```text
-                        ┌────────────────────┐
-                        │ AUTHENTICATED USER │
-                        │ identity bound to  │
-                        │ session.user_id    │
-                        └─────────┬──────────┘
-                                  │
-                                  ▼
-                      ┌──────────────────────┐
-                      │ INPUT TRUST BOUNDARY │
-                      │ classify / validate  │
-                      └──────────┬───────────┘
-                                 │
-                                 ▼
-                         SESSION SERVICE
-                    events/history are untrusted
-                                 │
-                    ┌────────────┴─────────────┐
-                    │                          │
-                    ▼                          ▼
-              CONTEXT BUILDER           MEMORY WRITE GATE
-        instructions ≠ untrusted data    selected session events
-        provenance / authority           trust / provenance
-                    ▲                    scope / screening
-                    │                          │
-                    │                          ▼
-                    │                    MEMORY BANK
-                    │                          │
-                    │                    RETRIEVAL GATE
-                    │                          │
-                    └────────────┬─────────────┘
-                                 ▼
-                              GEMINI
-                                 │
-                                 ▼
-                       TOOL POLICY BROKER
-            registered tool • confirmation requirement
-             current invocation • approval authority
-             call ID • name • exact arguments binding
-                                 │
-                   ┌─────────────┴─────────────┐
-                   ▼                           ▼
-             READ-ONLY TOOL              HIGH-RISK TOOL
-             scoped authority            authenticated
-                                         human approval
-                                         exact-call binding
-                                         one-time/current
-                   │                           │
-                   └──────────────┬────────────┘
-                                  │
-                                  ▼
-                           SESSION EVENT
-                        tool result recorded
-                                  │
-                                  └────→ CONTEXT BUILDER
-                                           │
-                                           ▼
-                                         GEMINI
-                                           │
-                                           ▼
-                              OUTPUT / EGRESS SECURITY GATE
-                                           │
-                                           ▼
-                                          USER
+AUTHENTICATED USER
+ identity → (aak_scope, user_id)
+          │
+          ▼
+INPUT TRUST BOUNDARY
+          │
+          ▼
+   SESSION SERVICE
+ history/events untrusted
+          │
+     ┌────┴───────────────┐
+     ▼                    ▼
+CONTEXT BUILDER     MEMORY WRITE GATE
+     ▲                    │
+     │                    ▼
+     │          AAK NATIVE MEMORY ADAPTER
+     │                    │
+     │                    ▼
+     │             MEMORY BANK
+     │          exact native scope
+     │          {aak_scope,user_id}
+     │                    │
+     │              RETRIEVAL GATE
+     │                    │
+     └──────────┬─────────┘
+                ▼
+             GEMINI
+                │
+                ▼
+       TOOL POLICY BROKER
+                │
+       ┌────────┴────────┐
+       ▼                 ▼
+ READ-ONLY TOOL     HIGH-RISK TOOL
+       │                 │
+       └────────┬────────┘
+                ▼
+          SESSION EVENT
+                │
+                ▼
+          CONTEXT BUILDER
+                │
+                ▼
+              GEMINI
+                │
+                ▼
+     OUTPUT / EGRESS GATE
+                │
+                ▼
+               USER
 
-
-      security decisions / confirmations / denials / provenance
-                                │
-                                ▼
-                       AUDIT / DECISION LEDGER
-                       metadata-first • redacted
+security decisions / confirmations / denials / provenance
+                │
+                ▼
+       AUDIT / DECISION LEDGER
+       metadata-first • redacted
 ```
 
-## Architectural rules
+## Authority and identity
 
-### Authenticated user and Session identity
+The application authenticates the user and deterministically establishes AAK authority as `(aak_scope, user_id)`. Prompt content, model output, retrieved memory, tool data, Session-history text, A2A data, or caller-controlled substitute identifiers cannot create or replace that authority.
 
-The application authenticates the user and deterministically binds that
-authority to `session.user_id`. Prompt content, memory, model output, tool data,
-A2A data, or caller-controlled identifiers cannot create or replace identity
-authority.
+Ambiguous or contradictory identity/scope fails closed.
 
-### Input trust boundary
+## Session Service
 
-Validate structure/size/expected types and classify content as untrusted data.
-Security screening may add signals but does not convert content into trusted
-instructions.
+Managed Agent Platform Sessions persist interaction events. Session history remains untrusted data.
 
-### Session Service
+Authorization logic must not trust a confirmation, identity, or scope merely because it appears in Session history.
 
-Sessions persist conversation/invocation events. History remains untrusted.
+## Memory Write Gate
 
-Authorization logic must not trust a confirmation merely because it appears in
-Session history.
+Every AAK-supported persistent-memory mutation passes one application policy boundary.
 
-### Memory Write Gate
+Current reference path:
 
-The gate is located on the real ADK/Memory Bank write seam.
-
-Reference v0.1 path:
-
-`Session events -> Memory Write Gate -> add_events_to_memory() -> Memory Bank`
+```text
+selected authenticated Session events
+        │
+        ▼
+Memory Write Gate
+        │
+        ▼
+AAK native Memory Bank adapter
+        │
+        ▼
+Google Memory Bank
+```
 
 Rules:
-- selected/incremental Session events are the default;
-- whole-session ingestion is a controlled comparison/fallback path;
-- any enabled direct/pre-extracted memory upload must pass the same gate;
-- model-directed `CreateMemory` is not exposed in v0.1;
-- provenance/origin, authenticated scope, sensitivity policy, and correction/
-  supersession state are preserved outside model trust judgments;
-- ambiguous authority or cross-user scope fails closed.
+- selected/incremental Session events remain the default source material;
+- whole-session ingestion is a controlled comparison/fallback path only when separately justified;
+- model-directed direct memory creation is not exposed as a bypass in v0.1;
+- provenance/origin, authenticated authority, sensitivity policy, and later correction/supersession state remain outside model trust judgments;
+- cross-user or cross-scope ambiguity fails closed.
 
-### Memory Bank
+## Native Memory Bank provider boundary
 
-Memory Bank remains the single persistent adaptive-memory authority for Option
-B. No second database/vector-memory authority is introduced.
+AAK has **DECIDED** to use the native/direct Google Memory Bank API for the security-sensitive provider adapter rather than making ADK `VertexAiMemoryBankService` define AAK's persistent-memory namespace.
 
-Memory revisions are useful for investigation/rollback but do not replace the
-AAK policy that decides whether a write is permitted.
+Canonical provider scope:
 
-### Retrieval Gate
+```text
+{
+  "aak_scope": authenticated_scope,
+  "user_id": authenticated_user_id
+}
+```
 
-Use authenticated user/application scope and on-demand relevant retrieval.
-Exclude or deprioritize superseded/stale memory according to correction policy.
+Provider scope is constructed only from authenticated AAK authority.
 
-Retrieved memory is data. It cannot authorize tools or replace system/developer
-policy.
+The prior synthetic/hashed provider-`user_id` projection is **SUPERSEDED** unless a verified platform blocker requires a new Bossman decision.
 
-### Context Builder
+Memory Bank remains the single persistent adaptive-memory authority for Option B. No second vector store/database memory authority is introduced.
 
-Keep control-plane instructions separate from:
+Native provider scope is defense in depth and does not replace AAK's Memory Write Gate or Retrieval Gate.
+
+## Generated-memory evidence rule
+
+Keep these states distinct:
+
+```text
+write gate accepted
+≠ ingestion accepted
+≠ generation completed
+≠ generated memory exists
+≠ generated memory is retrievable by intended authority
+```
+
+Provider generation/retrieval checks must be bounded. Timeout/backend failure must not be silently converted to an ordinary no-match result when that would hide a security or reliability failure.
+
+## Retrieval Gate
+
+Use authenticated `(aak_scope, user_id)` and on-demand relevant retrieval.
+
+Before active context construction:
+- authorize before querying;
+- retrieve only under the provider scope constructed from authenticated authority;
+- exclude/deprioritize superseded or stale memory according to correction policy when implemented;
+- treat retrieved memory as untrusted data;
+- never allow memory to authorize tools or replace system/developer policy.
+
+The provider's exact-scope isolation is not sufficient by itself; application retrieval policy remains a separate security boundary.
+
+## Context Builder
+
+Keep control-plane instructions structurally and semantically separate from:
 - user input;
 - Session history;
 - retrieved memory;
 - tool results/events;
 - external data.
 
-Preserve provenance/authority labels needed for security decisions.
+Preserve provenance/authority labels required for policy decisions.
 
-### Gemini
+## Gemini
 
-Gemini performs model reasoning and may propose memory/tool behavior.
-Gemini is not an authentication, authorization, approval, or provenance oracle.
+Gemini performs model reasoning and may propose memory/tool behavior. Gemini is not an authentication, authorization, approval, or provenance oracle.
 
-### Tool Policy Broker
+## Tool Policy Broker
 
-The broker is deterministic application policy around tool execution.
+Consequential tool execution must deterministically validate:
+1. tool registration;
+2. applicable confirmation requirement;
+3. original/current pending invocation;
+4. authenticated human approval authority;
+5. call identity/name;
+6. exact material argument binding;
+7. approval freshness and one-time use.
 
-For approval-gated/high-risk calls validate:
-1. the tool is registered to the executing agent;
-2. the call actually requires the applicable confirmation policy;
-3. the original pending invocation exists/current;
-4. approval comes from the authenticated authorized human;
-5. call identity/name matches;
-6. all material arguments match the approved call;
-7. approval is current and not replayed/previously consumed.
+Fail closed on mismatch. A2A/multi-agent approval relay remains outside Option B.
 
-Fail closed on mismatch.
+## Output / egress gate
 
-Use mocked/test tools until these properties are executable regressions.
+Apply applicable sensitive-data and policy controls before external release. Prevent cross-user data/secret leakage. Model Armor may be used as defense in depth but does not replace AAK authorization or memory integrity controls.
 
-### Read-only tools
+## Audit / Decision Ledger
 
-Read-only does not mean universally safe. Apply scope/resource allowlists,
-least privilege, data minimization, and normal result handling.
-
-### High-risk tools
-
-Require authenticated human approval and exact-call binding. Approval for one
-operation does not authorize a different target, tool, or material argument.
-
-### Tool results
-
-Tool results are recorded as Session events and re-enter reasoning through the
-Context Builder. They remain untrusted data; there is no separate authorization
-authority on the return path.
-
-### Output / egress gate
-
-Apply applicable sensitive-data and policy checks before external release.
-Prevent cross-user data/secret leakage.
-
-### Audit / Decision Ledger
-
-Record:
-- decision/event ID;
+Record metadata sufficient for reproducibility and investigation without becoming a raw-prompt, raw-memory, or secret archive:
+- event/decision ID;
 - timestamp;
 - authenticated principal/scope reference;
-- control/gate invoked;
-- allow/deny/error reason code;
+- gate/control invoked;
+- allow/deny/error reason;
 - memory/tool operation identity;
-- approval reference/provenance;
+- approval/provenance reference;
 - anomaly/security signal references.
-
-Do not store raw secrets or complete prompts/memory payloads by default.
-
-## Model Armor position
-
-Model Armor is approved as defense-in-depth when applicable.
-
-It may inspect/block supported Agent Platform or MCP traffic, but:
-- API use may be detector-only and require application policy decisions;
-- coverage varies by integration/payload;
-- it does not replace authenticated identity/session binding;
-- it does not replace Memory Write/Retrieval Gates;
-- it does not replace Tool Policy Broker authorization;
-- it does not replace human approval provenance.
 
 ## Deployment hardening requirements
 
-Before Cloud Run deployment:
-- resolve a current non-vulnerable ADK/dependency graph;
-- use only required extras;
-- lock dependencies;
-- generate/retain SBOM evidence;
-- perform dependency/security scanning;
-- validate OCI artifact using rootless Podman;
+Before Cloud Run production exposure:
+- use the reviewed dependency lock and required extras only;
+- validate the real built OCI artifact in a clean/rootless environment;
+- retain SBOM/security-scan/provenance evidence;
 - use a dedicated least-privilege runtime service account;
-- authenticate runtime ingress;
-- configure Memory Bank/Sessions IAM boundaries;
-- configure Model Armor only with explicitly reviewed coverage/enforcement;
-- ensure observability does not default to raw secret/prompt/memory payloads.
+- authenticate ingress;
+- review Memory Bank/Sessions IAM boundaries and applicable IAM Conditions;
+- ensure logging does not default to raw secrets/prompts/memory payloads;
+- promote the same reviewed artifact between Test and Production whenever practical.
 
 ## Explicit exclusions
 
 Option B does not include:
-- A2A;
-- multi-agent/fleet orchestration;
-- MCP runtime integrations;
+- A2A/multi-agent/fleet orchestration;
+- MCP runtime integration;
 - Agent Gateway as a required component;
-- model-directed direct Memory Bank creation;
-- uncontrolled continuous memory ingestion;
+- uncontrolled/direct model-owned persistent-memory mutation;
+- a second persistent memory/database authority;
+- generalized enterprise policy infrastructure;
 - production destructive/high-risk tools before Tool Policy Broker tests pass.
 
 ## Evidence rule
 
-This architecture is DECIDED design authority.
-
-It is not implementation evidence.
-
-Each security control remains `NOT VERIFIED` until test and runtime/repository
-evidence demonstrates that behavior.
+This file is design authority, not implementation evidence. Each control remains unverified until executable repository/provider evidence demonstrates the behavior. See `docs/codex/PROJECT-STATE.md` for current implementation status and `docs/architecture/MEMORY-BANK-NATIVE-SCOPE.md` for the current native-scope provider decision.
