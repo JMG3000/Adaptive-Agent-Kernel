@@ -8,7 +8,7 @@ class FakeIncrementalMemorySink:
     def __init__(self):
         self.stored_batches = []
 
-    def add_events_to_memory(
+    async def add_events_to_memory(
         self,
         *,
         user_id,
@@ -26,7 +26,7 @@ class FakeIncrementalMemorySink:
         )
 
 
-class MemoryWriteGateTests(unittest.TestCase):
+class MemoryWriteGateTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.sessions = SessionService()
         self.sink = FakeIncrementalMemorySink()
@@ -47,10 +47,10 @@ class MemoryWriteGateTests(unittest.TestCase):
         )
         return self.session.history[-1]
 
-    def test_sec_mw_001_authorized_selected_event_reaches_incremental_sink(self):
+    async def test_sec_mw_001_authorized_selected_event_reaches_incremental_sink(self):
         selected_event = self.append_event()
 
-        self.gate.persist_selected_events(
+        await self.gate.persist_selected_events(
             self.user_a,
             self.session.session_id,
             event_indexes=(0,),
@@ -67,7 +67,7 @@ class MemoryWriteGateTests(unittest.TestCase):
             self.sink.stored_batches[0],
         )
 
-    def test_sec_mw_002_cross_user_or_scope_write_is_rejected(self):
+    async def test_sec_mw_002_cross_user_or_scope_write_is_rejected(self):
         self.append_event()
         mismatched_identities = (
             self.user_b,
@@ -78,7 +78,7 @@ class MemoryWriteGateTests(unittest.TestCase):
             with self.subTest(identity=identity), self.assertRaises(
                 AuthorizationError
             ):
-                self.gate.persist_selected_events(
+                await self.gate.persist_selected_events(
                     identity,
                     self.session.session_id,
                     event_indexes=(0,),
@@ -86,7 +86,7 @@ class MemoryWriteGateTests(unittest.TestCase):
 
         self.assertEqual([], self.sink.stored_batches)
 
-    def test_sec_mw_003_model_create_memory_request_remains_event_data(self):
+    async def test_sec_mw_003_model_create_memory_request_remains_event_data(self):
         model_event = self.append_event(
             source="model",
             data={
@@ -95,7 +95,7 @@ class MemoryWriteGateTests(unittest.TestCase):
             },
         )
 
-        self.gate.persist_selected_events(
+        await self.gate.persist_selected_events(
             self.user_a,
             self.session.session_id,
             event_indexes=(0,),
@@ -106,7 +106,7 @@ class MemoryWriteGateTests(unittest.TestCase):
         self.assertIs(model_event, persisted_event)
         self.assertEqual("CreateMemory", persisted_event.data["operation"])
 
-    def test_sec_mw_004_enabled_mutation_path_invokes_gate_policy(self):
+    async def test_sec_mw_004_enabled_mutation_path_invokes_gate_policy(self):
         self.append_event()
 
         invalid_selections = ((), (1,), (None,))
@@ -114,7 +114,7 @@ class MemoryWriteGateTests(unittest.TestCase):
             with self.subTest(event_indexes=event_indexes), self.assertRaises(
                 MemoryWriteRejected
             ):
-                self.gate.persist_selected_events(
+                await self.gate.persist_selected_events(
                     self.user_a,
                     self.session.session_id,
                     event_indexes=event_indexes,

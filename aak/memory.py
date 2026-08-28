@@ -21,7 +21,7 @@ class MemoryWriteRejected(AuthorizationError):
 class IncrementalMemorySink(Protocol):
     """Local seam matching incremental add-events persistence."""
 
-    def add_events_to_memory(
+    async def add_events_to_memory(
         self,
         *,
         user_id: str,
@@ -42,7 +42,7 @@ class MemoryWriteGate:
         self._sessions = sessions
         self._sink = sink
 
-    def persist_selected_events(
+    async def persist_selected_events(
         self,
         identity: AuthenticatedIdentity,
         session_id: str,
@@ -51,7 +51,7 @@ class MemoryWriteGate:
     ) -> None:
         session = self._sessions.get_session(identity, session_id)
         selected_events = self._authorize_selection(session, event_indexes)
-        self._sink.add_events_to_memory(
+        await self._sink.add_events_to_memory(
             user_id=session.user_id,
             scope=session.scope,
             session_id=session.session_id,
