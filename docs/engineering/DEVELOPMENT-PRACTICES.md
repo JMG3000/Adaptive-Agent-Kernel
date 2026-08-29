@@ -178,6 +178,54 @@ Introduce persistent promotion branches only when their operational need is
 demonstrated. Promote the same tested revision or artifact between environments
 whenever practical.
 
+### Verified Source Checkpoint / GitPath
+
+AAK uses this evidence lifecycle:
+
+```text
+verified worktree
+→ scoped immutable commit
+→ local verified checkpoint
+→ authorized remote publication
+→ remote verified checkpoint
+→ separately authorized integration
+→ reproducible artifact
+→ separately authorized deployment
+```
+
+The commit SHA is the source-recovery identity. Local verification, remote
+publication, PR/merge integration, artifact creation, and deployment are
+separate evidence states; success in one does not establish another.
+
+- Any verification failure blocks commit and publication.
+- Push requires explicit Bossman authorization and a prior read of the
+  authoritative remote ref.
+- If the same-named remote feature branch exists, publication must be a normal
+  fast-forward. If it does not exist, explicit branch-publication authorization
+  permits creation of only that same-named remote branch and setting its
+  upstream.
+- Unexpected divergence fails closed. Never force-push automatically to
+  reconcile history.
+- A failed push does not invalidate an already verified local checkpoint.
+- A successful push command is insufficient evidence by itself. Verify the
+  authoritative remote ref afterward; remote publication is verified only
+  when the expected local and remote commit SHAs match.
+- Feature-branch publication does not establish PR or merge integration.
+- Deployment environments are not represented as Git branches unless an
+  independently demonstrated operational need requires that topology.
+- Build, OCI, promotion, and deployment provenance should identify the exact
+  source commit SHA used.
+
+Failure path:
+
+```text
+verification failure → no commit/push
+remote divergence → stop
+push failure → local checkpoint remains valid
+post-push SHA mismatch → publication unverified → stop
+missing publication authorization → stop at local checkpoint
+```
+
 ## Secure-by-design testing
 
 Treat security properties as behavior where practical.

@@ -35,6 +35,27 @@ below are present in the actual worktree. No CI, deployment configuration, or
 external provider integration should be assumed to exist until Codex verifies
 it directly.
 
+## Current Git checkpoint
+
+- active feature branch: **VERIFIED — `feat/memory-bank-provider`**
+- source checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` (`feat: add gated adaptive memory recall`)**
+- parent checkpoint: **VERIFIED — `ebf6ddf007153b9b3eb44f29f3652f1a09e65292`**
+- upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
+- published implementation checkpoint equality: **VERIFIED — the local implementation commit object and authoritative remote feature ref both resolve to `c8f7535874010cc7317eee62bf3df0ad2061200e`**
+- worktree before this documentation mutation: **VERIFIED CLEAN**
+- remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
+- current documentation reconciliation: **LOCAL CHECKPOINT ONLY — publication is not authorized by this task**
+- pull request: **NOT PERFORMED / pending authorization**
+- `main` integration: **NOT PERFORMED / pending authorization — local and remote `main` remain at `90f5d10650066d095e170c74e66642bae998b049` and do not contain the feature checkpoint**
+- artifact/build provenance: **NOT VERIFIED**
+- deployment provenance: **NOT VERIFIED**
+
+The remote feature branch contains the newest verified AAK implementation
+checkpoint; this must not be confused with integration into the repository
+default branch. Git history preserves historical state while this file records
+current truth. Durable Git methodology remains in
+`docs/engineering/DEVELOPMENT-PRACTICES.md`.
+
 ## Project identity and Devpost direction
 
 - **Project:** Adaptive Agent Kernel (AAK)
