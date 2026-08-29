@@ -22,7 +22,9 @@ Update this file when verified project state materially changes.
 Approved documentation baseline for this reconciliation:
 
 - `AGENTS.md`
+- `docs/architecture/MEMORY-BANK-NATIVE-SCOPE.md`
 - `docs/codex/PROJECT-STATE.md`
+- `docs/research/CROSS-ANALYSIS_REGISTER.md`
 - `docs/research/FINDINGS_REGISTER.md`
 - `docs/research/security/SECURITY_SOURCE_REGISTER.md`
 - `docs/engineering/DEVELOPMENT-PRACTICES.md`
@@ -41,7 +43,7 @@ it directly.
 - source checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` (`feat: add gated adaptive memory recall`)**
 - parent checkpoint: **VERIFIED — `ebf6ddf007153b9b3eb44f29f3652f1a09e65292`**
 - upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
-- published implementation checkpoint equality: **VERIFIED — the local implementation commit object and authoritative remote feature ref both resolve to `c8f7535874010cc7317eee62bf3df0ad2061200e`**
+- published implementation checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` is contained in the local and remote feature lineage; later documentation-only successors do not redefine it**
 - worktree before this documentation mutation: **VERIFIED CLEAN**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
 - documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
@@ -296,7 +298,7 @@ As of this state record:
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
-- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, and the bounded Retrieval Gate/Context Builder security tests pass locally; Tool Policy Broker, egress, audit, and Correction coverage remain incomplete**
+- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, and the bounded Retrieval Gate/Context Builder security tests pass locally; independent provider evidence covers the behaviors registered as SEC-MB-001–005, while dedicated SEC-MB requirement-to-test mapping remains incomplete and Tool Policy Broker, egress, audit, and Correction coverage remain incomplete**
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
 - correction precedence: **NOT VERIFIED**

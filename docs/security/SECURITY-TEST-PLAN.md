@@ -1,7 +1,7 @@
 # Adaptive Agent Kernel — Security Test Plan
 
-**Status:** DECIDED acceptance contract / tests not yet implemented\
-**Date:** 2026-08-24\
+**Status:** DECIDED acceptance contract / implementation evidence tracked separately\
+**Date:** 2026-08-28\
 **Method:** TDD + ATDD, smallest complete vertical slices.
 
 ## Purpose
@@ -40,6 +40,45 @@ green baseline.
 | SEC-MW-005 | P1 | explicit correction is recorded so stale/inferred memory no longer governs current behavior |
 | SEC-MW-006 | P1 | origin/provenance authority is not upgraded merely by model summarization or semantic confidence |
 | SEC-MW-007 | P1 | configured sensitive-data policy prevents prohibited secret material from ordinary memory persistence |
+
+## Slice 2A — Native Memory Bank provider acceptance
+
+These are requirements, not a claim that every dedicated test mapping is
+implemented. Provider-backed negative cases cannot be replaced by local-only
+Session denials.
+
+| ID | Pri | Acceptance behavior |
+|---|---:|---|
+| SEC-MB-001 | P0 | native provider write/read scope is constructed only from authenticated `{aak_scope, user_id}` |
+| SEC-MB-002 | P0 | same user and intended scope can retrieve generated memory produced from its authorized event |
+| SEC-MB-003 | P0 | same user and different scope cannot retrieve the first scope's generated memory through the real provider |
+| SEC-MB-004 | P0 | different user and same scope cannot retrieve the first user's generated memory through the real provider |
+| SEC-MB-005 | P0 | ingestion success is not reported as generated-memory success until generated memory is observed |
+| SEC-MB-006 | P0 | bounded generation/retrieval timeout or backend failure remains distinct from ordinary `NO_MATCH` |
+| SEC-MB-007 | P1 | legacy raw-user provider namespace is not silently dual-read or merged into native scope |
+
+Required live-provider evidence path:
+
+```text
+authenticated (aak_scope, user_id)
+        │
+        ▼
+Memory Write Gate
+        │
+        ▼
+native scoped ingestion
+        │
+        ▼
+bounded generation
+        │
+        ▼
+actual generated-memory retrieval
+        │
+   ┌────┼────────────┐
+   ▼    ▼            ▼
+correct wrong-scope wrong-user
+FOUND   NOT FOUND    NOT FOUND
+```
 
 ## Slice 3 — Retrieval Gate
 

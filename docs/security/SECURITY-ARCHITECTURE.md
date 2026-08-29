@@ -1,7 +1,7 @@
 # Adaptive Agent Kernel — Security Architecture
 
-**Status:** DECIDED baseline / implementation not yet verified\
-**Date:** 2026-08-24\
+**Status:** DECIDED baseline / implementation evidence tracked separately\
+**Date:** 2026-08-28\
 **Scope:** Option B reference kernel.
 
 ## Approved conceptual architecture
@@ -32,7 +32,10 @@
                     ▲                    scope / screening
                     │                          │
                     │                          ▼
+                    │              AAK NATIVE MEMORY ADAPTER
+                    │                          │
                     │                    MEMORY BANK
+                    │                 exact native scope
                     │                          │
                     │                    RETRIEVAL GATE
                     │                          │
@@ -83,10 +86,10 @@
 
 ### Authenticated user and Session identity
 
-The application authenticates the user and deterministically binds that
-authority to `session.user_id`. Prompt content, memory, model output, tool data,
-A2A data, or caller-controlled identifiers cannot create or replace identity
-authority.
+The application authenticates the user and deterministically establishes AAK
+authority as `(aak_scope, user_id)`. Prompt content, memory, model output, tool
+data, A2A data, Session history, or caller-controlled identifiers cannot create
+or replace that authority.
 
 ### Input trust boundary
 
@@ -107,7 +110,7 @@ The gate is located on the real ADK/Memory Bank write seam.
 
 Reference v0.1 path:
 
-`Session events -> Memory Write Gate -> add_events_to_memory() -> Memory Bank`
+`Session events -> Memory Write Gate -> native Memory Bank adapter -> Memory Bank`
 
 Rules:
 - selected/incremental Session events are the default;
@@ -126,13 +129,49 @@ B. No second database/vector-memory authority is introduced.
 Memory revisions are useful for investigation/rollback but do not replace the
 AAK policy that decides whether a write is permitted.
 
+### Native Memory Bank provider boundary
+
+AAK uses the native Google Memory Bank API for the security-sensitive provider
+adapter. Provider scope is constructed only from authenticated AAK authority:
+
+```text
+{
+  "aak_scope": authenticated_scope,
+  "user_id": authenticated_user_id
+}
+```
+
+The earlier synthetic/hashed provider-user projection is **SUPERSEDED** absent
+a newly verified platform blocker. Native provider scope is defense in depth;
+it does not replace the Memory Write Gate or Retrieval Gate. The legacy
+raw-user namespace is not silently dual-read or merged into native scope.
+
+### Generated-memory evidence rule
+
+Keep these states distinct:
+
+```text
+write gate accepted
+≠ ingestion accepted
+≠ generation completed
+≠ generated memory exists
+≠ generated memory is retrievable by intended authority
+```
+
+Generation and retrieval checks used as security evidence must be bounded.
+Timeout or backend failure must not be converted to ordinary no-match when that
+would hide a security or reliability failure.
+
 ### Retrieval Gate
 
-Use authenticated user/application scope and on-demand relevant retrieval.
+Use authenticated `(aak_scope, user_id)` and on-demand relevant retrieval.
 Exclude or deprioritize superseded/stale memory according to correction policy.
 
 Retrieved memory is data. It cannot authorize tools or replace system/developer
 policy.
+
+Provider exact-scope isolation is not sufficient by itself; application
+retrieval policy remains a separate security boundary.
 
 ### Context Builder
 
@@ -246,5 +285,6 @@ This architecture is DECIDED design authority.
 
 It is not implementation evidence.
 
-Each security control remains `NOT VERIFIED` until test and runtime/repository
-evidence demonstrates that behavior.
+Implementation status belongs in `docs/codex/PROJECT-STATE.md`. Each security
+control remains unverified until test and runtime/repository evidence
+demonstrates that behavior.
