@@ -44,7 +44,7 @@ it directly.
 - published implementation checkpoint equality: **VERIFIED — the local implementation commit object and authoritative remote feature ref both resolve to `c8f7535874010cc7317eee62bf3df0ad2061200e`**
 - worktree before this documentation mutation: **VERIFIED CLEAN**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
-- current documentation reconciliation: **LOCAL CHECKPOINT ONLY — publication is not authorized by this task**
+- documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
 - pull request: **NOT PERFORMED / pending authorization**
 - `main` integration: **NOT PERFORMED / pending authorization — local and remote `main` remain at `90f5d10650066d095e170c74e66642bae998b049` and do not contain the feature checkpoint**
 - artifact/build provenance: **NOT VERIFIED**
