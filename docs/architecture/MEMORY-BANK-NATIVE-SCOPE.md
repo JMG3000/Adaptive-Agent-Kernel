@@ -107,12 +107,14 @@ That evidence currently verifies:
 - bounded generated-memory observation in the intended scope;
 - bounded real-provider wrong-scope and wrong-user isolation results;
 - bounded similarity retrieval and a controlled rank-1 Retrieval Gate /
-  minimal Context Builder path.
+  minimal Context Builder path;
+- local typed explicit-Correction precedence and fixed-shape gated-persistence
+  plumbing.
 
 The controlled retrieval proof does not establish universal semantic
-relevance. Generalized relevance, Correction/supersession, IAM Conditions,
-restart-safe Cloud Run authority restoration, and Cloud Run deployment remain
-unverified or deferred.
+relevance. Live later/new-Session Memory Bank supersession, generalized
+relevance, IAM Conditions, restart-safe Cloud Run authority restoration, and
+Cloud Run deployment remain unverified or deferred.
 
 ## Legacy namespace
 

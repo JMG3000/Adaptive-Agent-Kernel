@@ -1,6 +1,6 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-28\
+**Status date:** 2026-08-29\
 **Purpose:** Mutable source for the current AAK implementation state, approved
 reference architecture, MVP boundary, and immediate engineering objective.
 
@@ -40,7 +40,7 @@ it directly.
 ## Current Git checkpoint
 
 - active feature branch: **VERIFIED — `feat/memory-bank-provider`**
-- source checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` (`feat: add gated adaptive memory recall`)**
+- published implementation baseline: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` (`feat: add gated adaptive memory recall`); the locally verified Correction successor is not yet published and its exact checkpoint is identified by Git after commit**
 - parent checkpoint: **VERIFIED — `ebf6ddf007153b9b3eb44f29f3652f1a09e65292`**
 - upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
 - published implementation checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` is contained in the local and remote feature lineage; later documentation-only successors do not redefine it**
@@ -52,10 +52,11 @@ it directly.
 - artifact/build provenance: **NOT VERIFIED**
 - deployment provenance: **NOT VERIFIED**
 
-The remote feature branch contains the newest verified AAK implementation
-checkpoint; this must not be confused with integration into the repository
-default branch. Git history preserves historical state while this file records
-current truth. Durable Git methodology remains in
+The remote feature branch contains the published adaptive-recall implementation
+checkpoint; a newer locally verified Correction successor is not remote
+publication or integration into the repository default branch. Git history
+preserves historical state while this file records current truth. Durable Git
+methodology remains in
 `docs/engineering/DEVELOPMENT-PRACTICES.md`.
 
 ## Project identity and Devpost direction
@@ -282,7 +283,7 @@ As of this state record:
 - Python runtime support: **DECIDED — AAK v0.1 supports Python 3.14.x; the project-managed baseline and current tested interpreter are Python 3.14.7, pinned by `.python-version`, and the project constraint remains `>=3.14,<3.15`**
 - Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.7, persistent `uv==0.12.5`, `google-adk==2.8.0`, `google-cloud-aiplatform[agent-engines]==1.165.1`, `pyproject.toml`, and `uv.lock`; all 85 lock records were inspected and 82 packages synchronize without conflicts**
 - dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete synchronized environment on 2026-08-28; this is point-in-time evidence, not a permanent safety guarantee**
-- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App, managed-Sessions adapter, native Memory Bank adapter, bounded Retrieval Gate, and minimal Context Builder are present**
+- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App, managed-Sessions adapter, native Memory Bank adapter, bounded Retrieval Gate, minimal Context Builder, and typed explicit-Correction boundary are present**
 - runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
 - Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
 - Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
@@ -291,18 +292,18 @@ As of this state record:
 - Memory Bank ingestion/generation: **VERIFIED — on 2026-08-28, one bounded live proof passed one synthetic selected Session event through the AAK Memory Write Gate to native `ingest_events`; one request used force-flush generation, completed, and produced a generated Memory against Runtime `3642145461147533312` in `us`**
 - native Memory Bank exact-scope isolation: **VERIFIED FOR THE BOUNDED PROVIDER PROOF — the generated Memory was retrieved under its authenticated `{aak_scope, user_id}` scope; separate provider requests using the same user/wrong scope and wrong user/same scope returned no memories**
 - native Memory Bank similarity retrieval: **VERIFIED FOR THE BOUNDED ADAPTIVE-RECALL PROOF — the current request queried only the authenticated `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}` scope with `top_k=2`; provider ordering and available distance evidence were preserved without inventing a distance threshold**
-- Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the same gated path completed the bounded live ingestion/generation proof; provider-returned data, model data, and Session history do not authorize writes**
+- Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the typed explicit-Correction path persists its fixed-shape authorized Session event only through the same gate; provider-returned data, model data, and Session history do not authorize writes**
 - legacy Memory Bank namespace: **SUPERSEDED / MIGRATION DEBT — the 2026-08-27 `VertexAiMemoryBankService` proof used the old `app_name + raw user_id` projection; AAK does not dual-read, migrate, delete, or use that namespace as native-adapter acceptance evidence**
 - Retrieval Gate / minimal Context Builder: **VERIFIED FOR THE CONTROLLED BOUNDED PROOF — locally, ambiguous identity and malformed rank-1 provider data fail closed; only the provider-ranked structurally valid rank-1 result is admitted, while application control, current request, and retrieved memory/provenance remain structurally separate and memory remains untrusted data**
 - authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof; production authenticated ingress and durable AAK scope-authority restoration remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
-- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, and the bounded Retrieval Gate/Context Builder security tests pass locally; independent provider evidence covers the behaviors registered as SEC-MB-001–005, while dedicated SEC-MB requirement-to-test mapping remains incomplete and Tool Policy Broker, egress, audit, and Correction coverage remain incomplete**
+- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, COR-001–007 local Correction coverage, and the bounded Retrieval Gate/Context Builder security tests pass locally; independent provider evidence covers the behaviors registered as SEC-MB-001–005, while dedicated SEC-MB requirement-to-test mapping remains incomplete and Tool Policy Broker, egress, audit, and live new-Session Correction coverage remain incomplete**
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
-- correction precedence: **NOT VERIFIED**
-- five regression families: **PARTIAL — one controlled live scenario verified Cold Start, new-Session Recall, provider-ranked top-1 Relevance, exclusion of the unrelated returned rank-2 candidate from active context, and a visible decision-relevant recommendation change; this does not prove universal semantic relevance, and Correction remains not verified**
+- correction precedence: **LOCALLY VERIFIED — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary; its fixed-shape authenticated-user Session event is authorized before append and persists through the Memory Write Gate, while active context keeps it separate as user data that governs over conflicting retrieved memory without becoming control policy. LIVE NEW-SESSION SUPERSESSION — NOT YET VERIFIED**
+- five regression families: **PARTIAL — one controlled live scenario verified Cold Start, new-Session Recall, provider-ranked top-1 Relevance, exclusion of the unrelated returned rank-2 candidate from active context, and a visible decision-relevant recommendation change; local Correction precedence and gated-persistence plumbing are verified, but later/new-Session provider supersession is not verified and generalized semantic relevance remains outside this evidence**
 - rootless Podman/OCI project validation: **NOT VERIFIED**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
@@ -331,9 +332,10 @@ because it exists.
 The current goal remains a verified adaptive-memory reference kernel, not a
 polished full product. Authenticated identity/Session binding, gated native
 Memory Bank writes, bounded rank-1 retrieval/context construction, and the
-controlled Cold Start/Recall/Relevance/Adaptation path now have executable
-evidence. The next implementation slice requires owner authorization and must
-remain narrow; Correction/supersession, Tool Policy Broker, egress/audit,
+controlled Cold Start/Recall/Relevance/Adaptation path and local explicit-
+Correction precedence/gated persistence now have executable evidence. The next
+Correction evidence boundary is a separately authorized bounded live provider
+proof of later/new-Session supersession; Tool Policy Broker, egress/audit,
 generalized relevance, and Cloud Run remain incomplete or unverified.
 
 ## Documentation architecture

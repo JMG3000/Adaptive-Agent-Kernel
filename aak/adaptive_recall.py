@@ -12,6 +12,7 @@ from aak.adk_app.application import (
     ADAPTIVE_CONTROL_INSTRUCTION,
     run_local_interaction,
 )
+from aak.corrections import ExplicitCorrection
 from aak.memory_bank import MemoryBankProviderError, ScopedMemory
 from aak.sessions import AuthenticatedIdentity, AuthenticationError, SessionService
 
@@ -40,22 +41,31 @@ class PreparedContext:
     control: str
     current_request: str
     retrieved_memory_data: tuple[AdmittedMemory, ...]
+    current_correction: ExplicitCorrection | None = None
 
     def render_user_payload(self) -> str:
+        payload: dict[str, object] = {
+            "current_user": {"request": self.current_request},
+            "retrieved_memory_data": [
+                {
+                    "memory_id": memory.memory_id,
+                    "text": memory.text,
+                    "distance": memory.distance,
+                    "provenance": memory.provenance,
+                    "authority": memory.authority,
+                }
+                for memory in self.retrieved_memory_data
+            ],
+        }
+        if self.current_correction is not None:
+            payload["current_correction"] = {
+                "statement": self.current_correction.statement,
+                "provenance": "AUTHENTICATED_CURRENT_USER",
+                "authority": "USER_DATA",
+                "precedence": "GOVERNS_OVER_CONFLICTING_RETRIEVED_MEMORY",
+            }
         return json.dumps(
-            {
-                "current_user": {"request": self.current_request},
-                "retrieved_memory_data": [
-                    {
-                        "memory_id": memory.memory_id,
-                        "text": memory.text,
-                        "distance": memory.distance,
-                        "provenance": memory.provenance,
-                        "authority": memory.authority,
-                    }
-                    for memory in self.retrieved_memory_data
-                ],
-            },
+            payload,
             sort_keys=True,
             separators=(",", ":"),
         )
@@ -75,6 +85,7 @@ class ContextBuilder:
         *,
         current_request: str,
         admitted_memories: tuple[AdmittedMemory, ...],
+        current_correction: ExplicitCorrection | None = None,
     ) -> PreparedContext:
         if (
             not isinstance(current_request, str)
@@ -82,10 +93,16 @@ class ContextBuilder:
             or current_request != current_request.strip()
         ):
             raise ValueError("current request must be a non-empty canonical string")
+        if current_correction is not None and not isinstance(
+            current_correction,
+            ExplicitCorrection,
+        ):
+            raise ValueError("typed explicit correction is required")
         return PreparedContext(
             control=ADAPTIVE_CONTROL_INSTRUCTION,
             current_request=current_request,
             retrieved_memory_data=admitted_memories,
+            current_correction=current_correction,
         )
 
 
@@ -138,6 +155,7 @@ async def run_adaptive_interaction(
     identity: AuthenticatedIdentity,
     session_id: str,
     current_request: str,
+    current_correction: ExplicitCorrection | None = None,
 ) -> AdaptiveInteraction:
     """Authorize, retrieve, build separated context, and run one ADK interaction."""
 
@@ -149,6 +167,7 @@ async def run_adaptive_interaction(
     context = ContextBuilder().build(
         current_request=current_request,
         admitted_memories=admitted,
+        current_correction=current_correction,
     )
     if application.root_agent.instruction != context.control:
         raise RuntimeError("ADK application control does not match Context Builder")

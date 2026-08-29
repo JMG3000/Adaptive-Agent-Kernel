@@ -24,7 +24,11 @@ The repository currently contains locally verified foundations for:
 - a bounded Retrieval Gate and minimal Context Builder that query the current
   authenticated native scope with `top_k=2`, admit only the provider-ranked
   structurally valid rank-1 result, and keep memory/provenance as untrusted data
-  separate from application control and the current request.
+  separate from application control and the current request;
+- a typed explicit-Correction boundary that keeps authenticated current-user
+  correction data structurally separate, gives it active precedence over
+  conflicting retrieved memory, and persists its fixed-shape Session event only
+  through the existing Memory Write Gate.
 
 One separately authorized live smoke test also exercised the existing AAK ADK
 application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
@@ -50,8 +54,10 @@ scope-authorization registry remains process-local and fail-closed rather than
 a production authenticated-ingress or durable scope-restoration mechanism.
 Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
 and minimal context construction are provider-backed for this bounded seam.
-Generalized relevance policy, Correction/supersession, Cloud Run deployment,
-and the complete Option B kernel remain **not verified**.
+Explicit Correction precedence and gated-persistence plumbing are locally
+verified; later/new-Session Memory Bank supersession is **not verified**.
+Generalized relevance policy, Cloud Run deployment, and the complete Option B
+kernel also remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
@@ -95,6 +101,7 @@ Run the accepted local regression tests:
   tests.test_managed_sessions \
   tests.test_memory_bank_provider \
   tests.test_adaptive_recall \
+  tests.test_correction \
   -v
 ```
 
