@@ -39,22 +39,22 @@ it directly.
 
 ## Current Git checkpoint
 
-- active feature branch: **VERIFIED — `feat/cloud-run-composition`**
-- verified implementation checkpoint: **VERIFIED — `3eae2cacd6d80958c0326b0e766a8637b0bb1841` (`feat: add private cloud run composition`); this checkpoint is contained in the current local and remote feature lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
+- active branch: **VERIFIED — `main`**
+- verified implementation checkpoint: **VERIFIED — `3eae2cacd6d80958c0326b0e766a8637b0bb1841` (`feat: add private cloud run composition`); this checkpoint is contained in the current local and remote `main` lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
 - parent checkpoint: **VERIFIED — `6483f69481c345186f8e1df236cb5cef792d2d9d`**
-- upstream branch: **VERIFIED — `origin/feat/cloud-run-composition`**
+- upstream branch: **VERIFIED — `origin/main`**
 - publication head: **AUTHORITATIVE IN CURRENT GIT REFS — inspect the local and upstream refs directly; do not infer the current publication head from the verified implementation checkpoint**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
 - documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
 - pull request: **NOT PERFORMED / pending authorization**
-- `main` integration: **NOT PERFORMED / pending authorization — local and remote `main` remain at `90f5d10650066d095e170c74e66642bae998b049` and do not contain the feature checkpoint**
+- `main` integration: **VERIFIED — after a normal fetch and fast-forward reconciliation, local `main` and `origin/main` both contained `f2e85babba7d940dcacb4694c04f9b1c69548186` and the private Cloud Run implementation checkpoint; current Git refs remain authoritative after later documentation-only successors**
 - artifact/build provenance: **VERIFIED FOR THE CONTROLLED DEPLOYMENT — published source checkpoint `3eae2cacd6d80958c0326b0e766a8637b0bb1841` produced `us-central1-docker.pkg.dev/adaptive-agent-kernel-v1-hack/cloud-run-source-deploy/aak-mvp@sha256:8bd7af7ccde583045c6ddb9f1c409cd013b2910eac8b792d654c2ca645975e40`; a retained local CycloneDX 1.5 SBOM and current dependency audit cover the locked deployment dependency set**
-- deployment provenance: **VERIFIED FOR ONE CONTROLLED BOUNDED PRIVATE CLOUD RUN DEPLOYMENT — service `aak-mvp`, region `us-central1`, final proof revision `aak-mvp-restore1`; this is not integration into `main` or production readiness**
+- deployment provenance: **VERIFIED FOR ONE CONTROLLED BOUNDED PRIVATE CLOUD RUN DEPLOYMENT — service `aak-mvp`, region `us-central1`, final proof revision `aak-mvp-restore1`; this does not establish production readiness**
 
-The remote feature branch contains the published private Cloud Run composition
-implementation checkpoint. This publication and deployment are not integration
-into the repository default branch. Git history preserves historical state
-while this file records current truth. Durable Git methodology remains in
+The local and remote default branch contain the published private Cloud Run
+composition implementation and bounded evidence checkpoints. Git history
+preserves historical state while this file records current truth. Durable Git
+methodology remains in
 `docs/engineering/DEVELOPMENT-PRACTICES.md`.
 
 ## Project identity and Devpost direction
@@ -337,8 +337,8 @@ are complete. No successor slice is selected by this state update.
 CONFIRMATION.**
 
 Tool Policy Broker, egress/audit, generalized relevance, production human
-ingress, broader workload/restart behavior, judge-facing demo readiness, and
-integration into `main` remain incomplete or unverified.
+ingress, broader workload/restart behavior, and judge-facing demo readiness
+remain incomplete or unverified.
 
 ## Documentation architecture
 

@@ -130,6 +130,7 @@ Run the accepted local regression tests:
   tests.test_memory_bank_provider \
   tests.test_adaptive_recall \
   tests.test_correction \
+  tests.test_cloud_run \
   -v
 ```
 
