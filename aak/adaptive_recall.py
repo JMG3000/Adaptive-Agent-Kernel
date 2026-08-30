@@ -27,6 +27,17 @@ class SimilarityRetriever(Protocol):
     ) -> tuple[ScopedMemory, ...]: ...
 
 
+class InteractionExecutor(Protocol):
+    async def execute(
+        self,
+        application: App,
+        *,
+        identity: AuthenticatedIdentity,
+        session_id: str,
+        prompt: str,
+    ) -> str: ...
+
+
 @dataclass(frozen=True, slots=True)
 class AdmittedMemory:
     memory_id: str
@@ -156,6 +167,7 @@ async def run_adaptive_interaction(
     session_id: str,
     current_request: str,
     current_correction: ExplicitCorrection | None = None,
+    interaction_executor: InteractionExecutor | None = None,
 ) -> AdaptiveInteraction:
     """Authorize, retrieve, build separated context, and run one ADK interaction."""
 
@@ -171,8 +183,16 @@ async def run_adaptive_interaction(
     )
     if application.root_agent.instruction != context.control:
         raise RuntimeError("ADK application control does not match Context Builder")
-    response = await run_local_interaction(
-        application,
-        prompt=context.render_user_payload(),
-    )
+    if interaction_executor is None:
+        response = await run_local_interaction(
+            application,
+            prompt=context.render_user_payload(),
+        )
+    else:
+        response = await interaction_executor.execute(
+            application,
+            identity=identity,
+            session_id=session_id,
+            prompt=context.render_user_payload(),
+        )
     return AdaptiveInteraction(response=response, context=context)

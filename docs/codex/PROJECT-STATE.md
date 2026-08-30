@@ -98,7 +98,7 @@ Current location decisions:
 
 - `VERTEX_MODEL_LOCATION = us` — **DECIDED**
 - `AGENT_PLATFORM_LOCATION = us` — **DECIDED**
-- `CLOUD_RUN_REGION` — **UNRESOLVED**
+- `CLOUD_RUN_REGION` — **RECOMMENDED — `us-central1`; not yet decided or deployed**
 
 These are separate configuration decisions. Do not infer a Cloud Run region
 from either approved `us` location.
@@ -281,7 +281,7 @@ As of this state record:
 - Python runtime support: **DECIDED — AAK v0.1 supports Python 3.14.x; the project-managed baseline and current tested interpreter are Python 3.14.7, pinned by `.python-version`, and the project constraint remains `>=3.14,<3.15`**
 - Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.7, persistent `uv==0.12.5`, `google-adk==2.8.0`, `google-cloud-aiplatform[agent-engines]==1.165.1`, `pyproject.toml`, and `uv.lock`; all 85 lock records were inspected and 82 packages synchronize without conflicts**
 - dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings from both PyPI and OSV for the complete synchronized environment on 2026-08-28; this is point-in-time evidence, not a permanent safety guarantee**
-- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App, managed-Sessions adapter, native Memory Bank adapter, bounded Retrieval Gate, minimal Context Builder, and typed explicit-Correction boundary are present**
+- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App, managed-Sessions adapter, native Memory Bank adapter, bounded Retrieval Gate, minimal Context Builder, typed explicit-Correction boundary, and private Cloud Run HTTP composition are present**
 - runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
 - Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
 - Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
@@ -302,9 +302,10 @@ As of this state record:
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
 - correction precedence: **VERIFIED FOR THE CONTROLLED BOUNDED LIVE PROOF — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary. In a clean synthetic exact provider scope, WRITE 1 generated stale state, then the fixed-shape explicit-Correction event persisted through `CorrectionService` → `MemoryWriteGate` → native Memory Bank. A new local recall Session contained neither X nor Y, `current_correction` was `None`, and one exact authenticated-scope `top_k=2` request returned provider rank 1 with corrected Y as current and X as previous. Only rank 1 entered active context as `UNTRUSTED_DATA`, and one application interaction visibly followed Y. Execution/output provenance was independently reconciled to durable Codex `CommandExecution` `exec-d78693b8-4a40-40f6-816c-3db8dfbe1ce2` with exit code 0 and complete stdout. This proves SEC-MW-005 and SEC-MR-003 only for the controlled scenario, not universal Correction behavior**
 - five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, Cloud Run restart behavior, or Cloud Run/runtime correctness**
-- rootless Podman/OCI project validation: **NOT VERIFIED**
+- rootless Podman/OCI project validation: **LOCALLY VERIFIED — the repository-owned Cloud Run image built successfully with rootless Podman; two credential-free container instances honored `PORT`, served `/healthz`, rejected unauthenticated `/v1/interactions`, and the second instance reproduced health after restart. This is not a live Cloud Run deployment proof**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
+- private Cloud Run HTTP composition: **LOCALLY VERIFIED WITH FAKE EXTERNAL BOUNDARIES AND ROOTLESS CONTAINER — strict bearer-token/configuration boundary, `/healthz`, `/v1/interactions`, managed Session create/restore, gated Correction/Memory wiring, provider-backed ADK Runner seam, `PORT` handling, unauthenticated rejection, and fresh-container health restart passed locally. Live Cloud Run deployment, Cloud Run IAM invocation, runtime service-account/IAM, and production readiness remain unverified**
 - final Devpost submission evidence: **NOT VERIFIED**
 
 Do not promote any item based only on historical artifacts or plans.

@@ -6,7 +6,11 @@ from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models import BaseLlm
 from google.adk.models.google_llm import Gemini
-from google.adk.runners import InMemoryRunner
+from google.adk.runners import InMemoryRunner, Runner
+from google.adk.sessions import BaseSessionService
+from google.genai import types
+
+from aak.sessions import AuthenticatedIdentity
 
 
 MODEL_ID = "gemini-3.5-flash"
@@ -83,3 +87,46 @@ async def run_local_interaction(application: App, *, prompt: str) -> str:
         if text:
             return text
     raise RuntimeError("ADK interaction completed without a text model response")
+
+
+class ProviderBackedInteractionExecutor:
+    """Execute an interaction with an injected provider-backed ADK Runner."""
+
+    def __init__(self, *, session_service: BaseSessionService, runner_factory=Runner):
+        self.session_service = session_service
+        self._runner_factory = runner_factory
+
+    async def execute(
+        self,
+        application: App,
+        *,
+        identity: AuthenticatedIdentity,
+        session_id: str,
+        prompt: str,
+    ) -> str:
+        runner = self._runner_factory(
+            app=application,
+            session_service=self.session_service,
+        )
+        try:
+            events = [
+                event
+                async for event in runner.run_async(
+                    user_id=identity.user_id,
+                    session_id=session_id,
+                    new_message=types.Content(
+                        role="user",
+                        parts=[types.Part(text=_require_external_value(prompt, "prompt"))],
+                    ),
+                )
+            ]
+        finally:
+            await runner.close()
+        for event in reversed(events):
+            content = event.content
+            if content is None:
+                continue
+            text = "".join(part.text or "" for part in content.parts or [])
+            if text:
+                return text
+        raise RuntimeError("ADK interaction completed without a text model response")

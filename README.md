@@ -35,7 +35,9 @@ The repository currently contains locally verified foundations for:
 One separately authorized live smoke test also exercised the existing AAK ADK
 application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
 model location and received a successful model response. The Agent Platform
-location is independently decided as `us`; the Cloud Run region is unresolved.
+location is independently decided as `us`; `us-central1` is the current
+recommended Cloud Run region and remains a deployment decision for a later
+authorized task.
 One bounded live managed-Sessions proof also created and retrieved a synthetic
 Session through the AAK adapter and verified that cross-user and wrong-scope
 reads were denied before provider access. One bounded live native Memory Bank
@@ -75,6 +77,15 @@ admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
 application behavior. Generalized semantic relevance, Cloud Run restart and
 deployment behavior, production readiness, and the complete Option B kernel
 remain **not verified**.
+
+The private Cloud Run HTTP composition is **LOCALLY VERIFIED WITH FAKE
+EXTERNAL BOUNDARIES AND ROOTLESS CONTAINER**. It provides `/healthz` and a
+strict authenticated `/v1/interactions` boundary, derives AAK identity from a
+verified OIDC subject plus server-controlled scope, and uses the managed
+Session, Memory Write, Retrieval, Correction, and provider-backed ADK runner
+seams. Live Cloud Run deployment, Cloud Run IAM invocation, runtime
+service-account/IAM, Cloud Run restart behavior, and production readiness
+remain unverified.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved

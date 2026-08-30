@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+tmp/
+tmp_*/
+AAK_DEV_RECOVERY.md
