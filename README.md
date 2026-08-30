@@ -35,9 +35,8 @@ The repository currently contains locally verified foundations for:
 One separately authorized live smoke test also exercised the existing AAK ADK
 application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
 model location and received a successful model response. The Agent Platform
-location is independently decided as `us`; `us-central1` is the current
-recommended Cloud Run region and remains a deployment decision for a later
-authorized task.
+location is independently decided as `us`; the private MVP Cloud Run service is
+deployed in the decided `us-central1` region.
 One bounded live managed-Sessions proof also created and retrieved a synthetic
 Session through the AAK adapter and verified that cross-user and wrong-scope
 reads were denied before provider access. One bounded live native Memory Bank
@@ -63,10 +62,11 @@ Session authority binding is **LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE
 TRUSTED-PROVIDER-CREATION ASSUMPTION**. One controlled bounded live Agent
 Platform proof then created an AAK-scoped managed Session and restored its
 user/scope authority from a genuinely fresh process; wrong-user and wrong-scope
-requests were denied before provider access. Production authenticated ingress,
-Cloud Run restart behavior, and production readiness remain unverified. Legacy
-non-AAK managed Session IDs still fail closed for restoration after local
-authority is lost.
+requests were denied before provider access. One later controlled Cloud Run
+proof restored the same managed Session on a distinct revision and instance.
+Production human ingress, broader restart behavior, and production readiness
+remain unverified. Legacy non-AAK managed Session IDs still fail closed for
+restoration after local authority is lost.
 Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
 and minimal context construction are provider-backed for this bounded seam.
 One separately authorized bounded live Correction proof persisted a stale
@@ -74,17 +74,17 @@ preference, persisted a typed explicit Correction through the native Memory
 Bank write path, created a new empty local Session with no current typed
 correction, retrieved the corrected provider-ranked memory in the exact scope,
 admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
-application behavior. Generalized semantic relevance, Cloud Run restart and
-deployment behavior, production readiness, and the complete Option B kernel
-remain **not verified**.
+application behavior. Generalized semantic relevance, production readiness,
+and the complete Option B kernel remain **not verified**.
 
-The private Cloud Run HTTP composition is **LOCALLY VERIFIED WITH FAKE
-EXTERNAL BOUNDARIES AND ROOTLESS CONTAINER**. It provides `/healthz` and a
-strict authenticated `/v1/interactions` boundary, derives AAK identity from a
-verified OIDC subject plus server-controlled scope, and uses the managed
-Session, Memory Write, Retrieval, Correction, and provider-backed ADK runner
-seams. Live Cloud Run deployment, Cloud Run IAM invocation, runtime
-service-account/IAM, Cloud Run restart behavior, and production readiness
+The private Cloud Run HTTP composition is **VERIFIED FOR ONE CONTROLLED BOUNDED
+LIVE DEPLOYMENT**. Service `aak-mvp` runs in `us-central1` with IAM-authenticated
+ingress, a dedicated least-privilege runtime identity, server-controlled scope
+`aak-mvp`, and the published composition checkpoint. A keyless proof caller
+completed one managed-Session/Gemini interaction; a distinct successor revision
+and instance then restored and continued the same Session. The local fake-boundary
+and rootless-container evidence remains applicable. Production human ingress,
+universal restart behavior, broader workload behavior, and production readiness
 remain unverified.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
