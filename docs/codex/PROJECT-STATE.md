@@ -40,8 +40,8 @@ it directly.
 ## Current Git checkpoint
 
 - active feature branch: **VERIFIED — `feat/memory-bank-provider`**
-- verified implementation checkpoint: **VERIFIED — `a97a76cc619549ffc00c5f03024244495c5f876d` (`feat: add explicit correction precedence`); this checkpoint is contained in the current local and remote feature lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
-- parent checkpoint: **VERIFIED — `708dba627044b8b6e863e5592418920c85c190c1`**
+- verified implementation checkpoint: **VERIFIED — `28ed95f9899f612469a76272219cee5d31b6c90a` (`feat: add restart-safe managed session authority`); this checkpoint is contained in the current local and remote feature lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
+- parent checkpoint: **VERIFIED — `3b546a69544553cc0606e9bb907891c6f0d803f4`**
 - upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
 - publication head: **AUTHORITATIVE IN CURRENT GIT REFS — inspect the local and upstream refs directly; do not infer the current publication head from the verified implementation checkpoint**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
@@ -51,10 +51,10 @@ it directly.
 - artifact/build provenance: **NOT VERIFIED**
 - deployment provenance: **NOT VERIFIED**
 
-The remote feature branch contains the published Correction implementation
-checkpoint. This publication is not integration into the repository default
-branch. Git history preserves historical state while this file records current
-truth. Durable Git methodology remains in
+The remote feature branch contains the published restart-safe managed Session
+implementation checkpoint. This publication is not integration into the
+repository default branch. Git history preserves historical state while this
+file records current truth. Durable Git methodology remains in
 `docs/engineering/DEVELOPMENT-PRACTICES.md`.
 
 ## Project identity and Devpost direction
@@ -285,7 +285,7 @@ As of this state record:
 - runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
 - Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
 - Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
-- Agent Platform Sessions integration: **VERIFIED — on 2026-08-27, the AAK adapter created exactly one synthetic managed Session with the provider-minimum `86400s` TTL, retrieved it for the authenticated AAK identity, and denied cross-user and same-user/wrong-scope reads before provider access**
+- Agent Platform Sessions integration: **VERIFIED — on 2026-08-27, the AAK adapter created exactly one synthetic managed Session with the provider-minimum `86400s` TTL, retrieved it for the authenticated AAK identity, and denied cross-user and same-user/wrong-scope reads before provider access. On 2026-08-30, one controlled bounded proof created an AAK-scoped managed Session through the real provider in Process A, then Process B began with a fresh empty `SessionService`, denied wrong-scope and wrong-user requests before provider access, made exactly one provider `get_session` call for the original identity, and reconstructed the exact local user/scope/Session authority**
 - native Memory Bank adapter: **VERIFIED — the adapter uses `agentplatform.Client(...).aio.agent_engines.memories`, derives the exact provider scope as `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}`, and exposes no supported direct persistent-mutation method outside the Memory Write Gate**
 - Memory Bank ingestion/generation: **VERIFIED — on 2026-08-28, one bounded live proof passed one synthetic selected Session event through the AAK Memory Write Gate to native `ingest_events`; one request used force-flush generation, completed, and produced a generated Memory against Runtime `3642145461147533312` in `us`**
 - native Memory Bank exact-scope isolation: **VERIFIED FOR THE BOUNDED PROVIDER PROOF — the generated Memory was retrieved under its authenticated `{aak_scope, user_id}` scope; separate provider requests using the same user/wrong scope and wrong user/same scope returned no memories**
@@ -293,7 +293,7 @@ As of this state record:
 - Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the typed explicit-Correction path persists its fixed-shape authorized Session event only through the same gate; provider-returned data, model data, and Session history do not authorize writes**
 - legacy Memory Bank namespace: **SUPERSEDED / MIGRATION DEBT — the 2026-08-27 `VertexAiMemoryBankService` proof used the old `app_name + raw user_id` projection; AAK does not dual-read, migrate, delete, or use that namespace as native-adapter acceptance evidence**
 - Retrieval Gate / minimal Context Builder: **VERIFIED FOR THE CONTROLLED BOUNDED PROOF — locally, ambiguous identity and malformed rank-1 provider data fail closed; only the provider-ranked structurally valid rank-1 result is admitted, while application control, current request, and retrieved memory/provenance remain structurally separate and memory remains untrusted data**
-- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof. Restart-safe managed Session authority binding is LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE TRUSTED-PROVIDER-CREATION ASSUMPTION: AAK generates a 62-character `aak1-<24 hex nonce>-<32 hex binding>` Session ID. The 128-bit truncated SHA-256 binding covers version, the 96-bit `secrets` nonce, authenticated `user_id`, and authenticated scope, so separate Sessions for one authority do not expose a stable binding value. The ID is neither a signature nor a bearer authorization token. A fresh local `SessionService` restores authority only with authenticated identity, a matching scoped ID, exact provider-record existence, and an exact returned provider user and Session ID. Wrong-user, wrong-scope, malformed, wrong-version, binding-mismatch, provider-create failure, provider-substitution, and existing-conflict cases fail closed. Legacy non-AAK scoped Session IDs fail closed for authority restoration after process loss. Production authenticated ingress, a live Agent Platform restart proof, and Cloud Run restart behavior remain unverified**
+- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified. Restart-safe managed Session authority binding is LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE TRUSTED-PROVIDER-CREATION ASSUMPTION: AAK generates a 62-character `aak1-<24 hex nonce>-<32 hex binding>` Session ID. The 128-bit truncated SHA-256 binding covers version, the 96-bit `secrets` nonce, authenticated `user_id`, and authenticated scope, so separate Sessions for one authority do not expose a stable binding value. The ID is neither a signature nor a bearer authorization token. A fresh local `SessionService` restores authority only with authenticated identity, a matching scoped ID, exact provider-record existence, and an exact returned provider user and Session ID. Wrong-user, wrong-scope, malformed, wrong-version, binding-mismatch, provider-create failure, provider-substitution, and existing-conflict cases fail closed. Legacy non-AAK scoped Session IDs fail closed for authority restoration after process loss. LIVE AGENT PLATFORM FRESH-PROCESS SESSION AUTHORITY RESTORATION: VERIFIED FOR ONE CONTROLLED BOUNDED SYNTHETIC PROOF — separate Processes A and B used only the synthetic authenticated identity and generated Session ID across the process boundary; both negative identities failed before provider access, one exact provider record was retrieved for the original identity, and local authority was reconstructed without Session state/history. Production authenticated ingress, Cloud Run restart behavior, and production readiness remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
@@ -301,7 +301,7 @@ As of this state record:
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
 - correction precedence: **VERIFIED FOR THE CONTROLLED BOUNDED LIVE PROOF — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary. In a clean synthetic exact provider scope, WRITE 1 generated stale state, then the fixed-shape explicit-Correction event persisted through `CorrectionService` → `MemoryWriteGate` → native Memory Bank. A new local recall Session contained neither X nor Y, `current_correction` was `None`, and one exact authenticated-scope `top_k=2` request returned provider rank 1 with corrected Y as current and X as previous. Only rank 1 entered active context as `UNTRUSTED_DATA`, and one application interaction visibly followed Y. Execution/output provenance was independently reconciled to durable Codex `CommandExecution` `exec-d78693b8-4a40-40f6-816c-3db8dfbe1ce2` with exit code 0 and complete stdout. This proves SEC-MW-005 and SEC-MR-003 only for the controlled scenario, not universal Correction behavior**
-- five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, live Agent Platform/Cloud Run restart behavior, or Cloud Run/runtime correctness**
+- five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, Cloud Run restart behavior, or Cloud Run/runtime correctness**
 - rootless Podman/OCI project validation: **NOT VERIFIED**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
@@ -327,16 +327,17 @@ because it exists.
 
 ## Immediate engineering objective
 
-The bounded live later/new-Session Correction evidence boundary and the local
-fake-provider restart-safe managed Session authority-binding slice are
+The bounded live later/new-Session Correction evidence boundary, local
+fake-provider restart-safe managed Session authority-binding slice, and one
+controlled bounded live Agent Platform fresh-process restoration proof are
 complete. No successor slice is selected by this state update.
 
 **NEXT IMPLEMENTATION OBJECTIVE: PENDING CURRENT BOSSMAN PLANNING
 CONFIRMATION.**
 
-Tool Policy Broker, egress/audit, generalized relevance, live Agent Platform
-and Cloud Run restart validation, production authenticated ingress, and Cloud
-Run deployment remain incomplete or unverified.
+Tool Policy Broker, egress/audit, generalized relevance, Cloud Run restart
+validation, production authenticated ingress, and Cloud Run deployment remain
+incomplete or unverified.
 
 ## Documentation architecture
 

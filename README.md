@@ -58,9 +58,13 @@ authority only after authenticated identity, exact provider-record existence,
 and the exact returned provider user and Session ID validate. The scoped ID is
 neither a signature nor a bearer authorization token. Restart-safe managed
 Session authority binding is **LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE
-TRUSTED-PROVIDER-CREATION ASSUMPTION**; live Agent Platform restart and Cloud
-Run restart behavior remain unverified. Legacy non-AAK managed Session IDs
-still fail closed for restoration after local authority is lost.
+TRUSTED-PROVIDER-CREATION ASSUMPTION**. One controlled bounded live Agent
+Platform proof then created an AAK-scoped managed Session and restored its
+user/scope authority from a genuinely fresh process; wrong-user and wrong-scope
+requests were denied before provider access. Production authenticated ingress,
+Cloud Run restart behavior, and production readiness remain unverified. Legacy
+non-AAK managed Session IDs still fail closed for restoration after local
+authority is lost.
 Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
 and minimal context construction are provider-backed for this bounded seam.
 One separately authorized bounded live Correction proof persisted a stale
@@ -68,9 +72,9 @@ preference, persisted a typed explicit Correction through the native Memory
 Bank write path, created a new empty local Session with no current typed
 correction, retrieved the corrected provider-ranked memory in the exact scope,
 admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
-application behavior. Generalized semantic relevance, live provider/runtime
-restart behavior, Cloud Run deployment, production readiness, and the complete
-Option B kernel remain **not verified**.
+application behavior. Generalized semantic relevance, Cloud Run restart and
+deployment behavior, production readiness, and the complete Option B kernel
+remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved
