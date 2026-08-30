@@ -1,6 +1,6 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-29\
+**Status date:** 2026-08-30\
 **Purpose:** Mutable source for the current AAK implementation state, approved
 reference architecture, MVP boundary, and immediate engineering objective.
 
@@ -40,10 +40,10 @@ it directly.
 ## Current Git checkpoint
 
 - active feature branch: **VERIFIED — `feat/memory-bank-provider`**
-- published implementation baseline: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` (`feat: add gated adaptive memory recall`); the locally verified Correction successor is not yet published and its exact checkpoint is identified by Git after commit**
-- parent checkpoint: **VERIFIED — `ebf6ddf007153b9b3eb44f29f3652f1a09e65292`**
+- verified implementation checkpoint: **VERIFIED — `a97a76cc619549ffc00c5f03024244495c5f876d` (`feat: add explicit correction precedence`); this checkpoint is contained in the current local and remote feature lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
+- parent checkpoint: **VERIFIED — `708dba627044b8b6e863e5592418920c85c190c1`**
 - upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
-- published implementation checkpoint: **VERIFIED — `c8f7535874010cc7317eee62bf3df0ad2061200e` is contained in the local and remote feature lineage; later documentation-only successors do not redefine it**
+- publication head: **AUTHORITATIVE IN CURRENT GIT REFS — inspect the local and upstream refs directly; do not infer the current publication head from the verified implementation checkpoint**
 - worktree before this documentation mutation: **VERIFIED CLEAN**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
 - documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
@@ -52,11 +52,10 @@ it directly.
 - artifact/build provenance: **NOT VERIFIED**
 - deployment provenance: **NOT VERIFIED**
 
-The remote feature branch contains the published adaptive-recall implementation
-checkpoint; a newer locally verified Correction successor is not remote
-publication or integration into the repository default branch. Git history
-preserves historical state while this file records current truth. Durable Git
-methodology remains in
+The remote feature branch contains the published Correction implementation
+checkpoint. This publication is not integration into the repository default
+branch. Git history preserves historical state while this file records current
+truth. Durable Git methodology remains in
 `docs/engineering/DEVELOPMENT-PRACTICES.md`.
 
 ## Project identity and Devpost direction
@@ -299,11 +298,11 @@ As of this state record:
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
-- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, COR-001–007 local Correction coverage, and the bounded Retrieval Gate/Context Builder security tests pass locally; independent provider evidence covers the behaviors registered as SEC-MB-001–005, while dedicated SEC-MB requirement-to-test mapping remains incomplete and Tool Policy Broker, egress, audit, and live new-Session Correction coverage remain incomplete**
+- security regression plan implementation: **PARTIAL — Slice 1 SEC-ID/SEC-SES, Slice 2 SEC-MW-001–004, COR-001–007 local Correction coverage, and the bounded Retrieval Gate/Context Builder security tests pass locally; independent provider evidence covers the behaviors registered as SEC-MB-001–005, and SEC-MW-005 plus SEC-MR-003 now have bounded live provider/new-Session evidence. Dedicated SEC-MB requirement-to-test mapping, Tool Policy Broker, egress, and audit coverage remain incomplete**
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
-- correction precedence: **LOCALLY VERIFIED — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary; its fixed-shape authenticated-user Session event is authorized before append and persists through the Memory Write Gate, while active context keeps it separate as user data that governs over conflicting retrieved memory without becoming control policy. LIVE NEW-SESSION SUPERSESSION — NOT YET VERIFIED**
-- five regression families: **PARTIAL — one controlled live scenario verified Cold Start, new-Session Recall, provider-ranked top-1 Relevance, exclusion of the unrelated returned rank-2 candidate from active context, and a visible decision-relevant recommendation change; local Correction precedence and gated-persistence plumbing are verified, but later/new-Session provider supersession is not verified and generalized semantic relevance remains outside this evidence**
+- correction precedence: **VERIFIED FOR THE CONTROLLED BOUNDED LIVE PROOF — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary. In a clean synthetic exact provider scope, WRITE 1 generated stale state, then the fixed-shape explicit-Correction event persisted through `CorrectionService` → `MemoryWriteGate` → native Memory Bank. A new local recall Session contained neither X nor Y, `current_correction` was `None`, and one exact authenticated-scope `top_k=2` request returned provider rank 1 with corrected Y as current and X as previous. Only rank 1 entered active context as `UNTRUSTED_DATA`, and one application interaction visibly followed Y. Execution/output provenance was independently reconciled to durable Codex `CommandExecution` `exec-d78693b8-4a40-40f6-816c-3db8dfbe1ce2` with exit code 0 and complete stdout. This proves SEC-MW-005 and SEC-MR-003 only for the controlled scenario, not universal Correction behavior**
+- five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, durable restart behavior, or Cloud Run/runtime correctness**
 - rootless Podman/OCI project validation: **NOT VERIFIED**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
@@ -329,14 +328,15 @@ because it exists.
 
 ## Immediate engineering objective
 
-The current goal remains a verified adaptive-memory reference kernel, not a
-polished full product. Authenticated identity/Session binding, gated native
-Memory Bank writes, bounded rank-1 retrieval/context construction, and the
-controlled Cold Start/Recall/Relevance/Adaptation path and local explicit-
-Correction precedence/gated persistence now have executable evidence. The next
-Correction evidence boundary is a separately authorized bounded live provider
-proof of later/new-Session supersession; Tool Policy Broker, egress/audit,
-generalized relevance, and Cloud Run remain incomplete or unverified.
+The bounded live later/new-Session Correction evidence boundary is complete.
+No successor slice is authorized by this documentation reconciliation.
+
+**NEXT IMPLEMENTATION OBJECTIVE: PENDING CURRENT BOSSMAN PLANNING
+CONFIRMATION.**
+
+Tool Policy Broker, egress/audit, generalized relevance, durable restart-safe
+authority restoration, production authenticated ingress, and Cloud Run remain
+incomplete or unverified.
 
 ## Documentation architecture
 

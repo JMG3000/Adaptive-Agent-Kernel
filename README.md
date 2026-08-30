@@ -54,10 +54,14 @@ scope-authorization registry remains process-local and fail-closed rather than
 a production authenticated-ingress or durable scope-restoration mechanism.
 Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
 and minimal context construction are provider-backed for this bounded seam.
-Explicit Correction precedence and gated-persistence plumbing are locally
-verified; later/new-Session Memory Bank supersession is **not verified**.
-Generalized relevance policy, Cloud Run deployment, and the complete Option B
-kernel also remain **not verified**.
+One separately authorized bounded live Correction proof persisted a stale
+preference, persisted a typed explicit Correction through the native Memory
+Bank write path, created a new empty local Session with no current typed
+correction, retrieved the corrected provider-ranked memory in the exact scope,
+admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
+application behavior. Generalized semantic relevance, durable/restart-safe
+authority restoration, Cloud Run/runtime deployment, production readiness, and
+the complete Option B kernel remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved

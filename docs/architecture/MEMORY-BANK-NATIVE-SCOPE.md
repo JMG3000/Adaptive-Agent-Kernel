@@ -108,13 +108,17 @@ That evidence currently verifies:
 - bounded real-provider wrong-scope and wrong-user isolation results;
 - bounded similarity retrieval and a controlled rank-1 Retrieval Gate /
   minimal Context Builder path;
-- local typed explicit-Correction precedence and fixed-shape gated-persistence
-  plumbing.
+- typed explicit-Correction precedence and fixed-shape gated persistence; and
+- one bounded live path from explicit Correction through the Memory Write Gate
+  and native Memory Bank to a later/new local Session, one exact authenticated-
+  scope similarity retrieval, rank-1 Retrieval Gate admission as untrusted
+  data, and visibly corrected application behavior.
 
 The controlled retrieval proof does not establish universal semantic
-relevance. Live later/new-Session Memory Bank supersession, generalized
-relevance, IAM Conditions, restart-safe Cloud Run authority restoration, and
-Cloud Run deployment remain unverified or deferred.
+relevance, and the controlled Correction proof does not establish provider-wide
+Correction behavior across arbitrary facts or workloads. Generalized relevance,
+IAM Conditions, restart-safe authority restoration, Cloud Run runtime behavior,
+and Cloud Run deployment remain unverified or deferred.
 
 ## Legacy namespace
 
