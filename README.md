@@ -17,7 +17,9 @@ The repository currently contains locally verified foundations for:
 - deterministic ADK execution through `InMemoryRunner`, with a fake `BaseLlm`
   only at the model/network boundary;
 - an AAK-authorized `VertexAiSessionService` adapter that preserves the
-  authenticated user/scope boundary and fails closed before provider access;
+  authenticated user/scope boundary, creates provider-compatible AAK v1
+  Session IDs with nonce-dependent bindings over both authority dimensions,
+  and fails closed before provider access on mismatched restoration attempts;
 - an AAK native Memory Bank adapter that derives the exact provider scope
   `{aak_scope, user_id}` from authenticated AAK authority and keeps incremental
   provider writes behind the existing Memory Write Gate;
@@ -49,9 +51,16 @@ not. This is not a universal semantic-relevance policy, and no similarity
 distance threshold is used.
 
 The local ADK in-memory runner remains temporary execution state. Managed
-Session persistence is now provider-backed for this bounded seam, while AAK's
-scope-authorization registry remains process-local and fail-closed rather than
-a production authenticated-ingress or durable scope-restoration mechanism.
+Session persistence is provider-backed for this bounded seam. AAK now encodes a
+non-secret nonce-dependent identity/scope binding in generated AAK v1 managed
+Session IDs and, with a fresh local `SessionService`, reconstructs local
+authority only after authenticated identity, exact provider-record existence,
+and the exact returned provider user and Session ID validate. The scoped ID is
+neither a signature nor a bearer authorization token. Restart-safe managed
+Session authority binding is **LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE
+TRUSTED-PROVIDER-CREATION ASSUMPTION**; live Agent Platform restart and Cloud
+Run restart behavior remain unverified. Legacy non-AAK managed Session IDs
+still fail closed for restoration after local authority is lost.
 Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
 and minimal context construction are provider-backed for this bounded seam.
 One separately authorized bounded live Correction proof persisted a stale
@@ -59,9 +68,9 @@ preference, persisted a typed explicit Correction through the native Memory
 Bank write path, created a new empty local Session with no current typed
 correction, retrieved the corrected provider-ranked memory in the exact scope,
 admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
-application behavior. Generalized semantic relevance, durable/restart-safe
-authority restoration, Cloud Run/runtime deployment, production readiness, and
-the complete Option B kernel remain **not verified**.
+application behavior. Generalized semantic relevance, live provider/runtime
+restart behavior, Cloud Run deployment, production readiness, and the complete
+Option B kernel remain **not verified**.
 
 See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
 implementation boundary and [`docs/security/`](docs/security/) for the approved

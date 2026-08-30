@@ -44,7 +44,6 @@ it directly.
 - parent checkpoint: **VERIFIED — `708dba627044b8b6e863e5592418920c85c190c1`**
 - upstream branch: **VERIFIED — `origin/feat/memory-bank-provider`**
 - publication head: **AUTHORITATIVE IN CURRENT GIT REFS — inspect the local and upstream refs directly; do not infer the current publication head from the verified implementation checkpoint**
-- worktree before this documentation mutation: **VERIFIED CLEAN**
 - remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
 - documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
 - pull request: **NOT PERFORMED / pending authorization**
@@ -294,7 +293,7 @@ As of this state record:
 - Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the typed explicit-Correction path persists its fixed-shape authorized Session event only through the same gate; provider-returned data, model data, and Session history do not authorize writes**
 - legacy Memory Bank namespace: **SUPERSEDED / MIGRATION DEBT — the 2026-08-27 `VertexAiMemoryBankService` proof used the old `app_name + raw user_id` projection; AAK does not dual-read, migrate, delete, or use that namespace as native-adapter acceptance evidence**
 - Retrieval Gate / minimal Context Builder: **VERIFIED FOR THE CONTROLLED BOUNDED PROOF — locally, ambiguous identity and malformed rank-1 provider data fail closed; only the provider-ranked structurally valid rank-1 result is admitted, while application control, current request, and retrieved memory/provenance remain structurally separate and memory remains untrusted data**
-- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof; production authenticated ingress and durable AAK scope-authority restoration remain unverified**
+- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified, including one bounded live synthetic-identity proof. Restart-safe managed Session authority binding is LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE TRUSTED-PROVIDER-CREATION ASSUMPTION: AAK generates a 62-character `aak1-<24 hex nonce>-<32 hex binding>` Session ID. The 128-bit truncated SHA-256 binding covers version, the 96-bit `secrets` nonce, authenticated `user_id`, and authenticated scope, so separate Sessions for one authority do not expose a stable binding value. The ID is neither a signature nor a bearer authorization token. A fresh local `SessionService` restores authority only with authenticated identity, a matching scoped ID, exact provider-record existence, and an exact returned provider user and Session ID. Wrong-user, wrong-scope, malformed, wrong-version, binding-mismatch, provider-create failure, provider-substitution, and existing-conflict cases fail closed. Legacy non-AAK scoped Session IDs fail closed for authority restoration after process loss. Production authenticated ingress, a live Agent Platform restart proof, and Cloud Run restart behavior remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
@@ -302,7 +301,7 @@ As of this state record:
 - structured-profile implementation: **NOT VERIFIED**
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
 - correction precedence: **VERIFIED FOR THE CONTROLLED BOUNDED LIVE PROOF — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary. In a clean synthetic exact provider scope, WRITE 1 generated stale state, then the fixed-shape explicit-Correction event persisted through `CorrectionService` → `MemoryWriteGate` → native Memory Bank. A new local recall Session contained neither X nor Y, `current_correction` was `None`, and one exact authenticated-scope `top_k=2` request returned provider rank 1 with corrected Y as current and X as previous. Only rank 1 entered active context as `UNTRUSTED_DATA`, and one application interaction visibly followed Y. Execution/output provenance was independently reconciled to durable Codex `CommandExecution` `exec-d78693b8-4a40-40f6-816c-3db8dfbe1ce2` with exit code 0 and complete stdout. This proves SEC-MW-005 and SEC-MR-003 only for the controlled scenario, not universal Correction behavior**
-- five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, durable restart behavior, or Cloud Run/runtime correctness**
+- five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, production readiness, live Agent Platform/Cloud Run restart behavior, or Cloud Run/runtime correctness**
 - rootless Podman/OCI project validation: **NOT VERIFIED**
 - CI/CD: **NOT VERIFIED**
 - Cloud Run deployment: **NOT VERIFIED**
@@ -328,15 +327,16 @@ because it exists.
 
 ## Immediate engineering objective
 
-The bounded live later/new-Session Correction evidence boundary is complete.
-No successor slice is authorized by this documentation reconciliation.
+The bounded live later/new-Session Correction evidence boundary and the local
+fake-provider restart-safe managed Session authority-binding slice are
+complete. No successor slice is selected by this state update.
 
 **NEXT IMPLEMENTATION OBJECTIVE: PENDING CURRENT BOSSMAN PLANNING
 CONFIRMATION.**
 
-Tool Policy Broker, egress/audit, generalized relevance, durable restart-safe
-authority restoration, production authenticated ingress, and Cloud Run remain
-incomplete or unverified.
+Tool Policy Broker, egress/audit, generalized relevance, live Agent Platform
+and Cloud Run restart validation, production authenticated ingress, and Cloud
+Run deployment remain incomplete or unverified.
 
 ## Documentation architecture
 

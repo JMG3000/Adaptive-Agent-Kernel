@@ -113,6 +113,25 @@ class SessionService:
         self._authorize(principal, session)
         return session
 
+    def _get_authorized_session_if_present(
+        self,
+        identity: AuthenticatedIdentity,
+        session_id: str,
+    ) -> Session | None:
+        """Trusted restoration seam that still denies existing conflicts."""
+
+        principal = self._require_identity(identity)
+        canonical_session_id = _require_unambiguous(
+            session_id,
+            "session_id",
+            ValueError,
+        )
+        session = self._sessions.get(canonical_session_id)
+        if session is None:
+            return None
+        self._authorize(principal, session)
+        return session
+
     def append_event(
         self,
         identity: AuthenticatedIdentity,
