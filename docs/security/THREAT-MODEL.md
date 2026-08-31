@@ -1,7 +1,7 @@
 # Adaptive Agent Kernel — Threat Model
 
-**Status:** DECIDED baseline / implementation not yet verified\
-**Date:** 2026-08-24\
+**Status:** DECIDED baseline / bounded implementation evidence tracked separately\
+**Date:** 2026-08-31\
 **Scope:** Option B reference kernel only.
 
 ## Purpose
@@ -16,6 +16,8 @@ source provenance live in `docs/research/FINDINGS_REGISTER.md` and
 ## Protected assets
 
 - authenticated user identity and its binding to `session.user_id`;
+- signed IAP assertion integrity, exact service audience/issuer, and separation
+  between Cloud Run/IAP authentication and AAK application authority;
 - Session data, event ordering, invocation state, and confirmation state;
 - Memory Bank scope, memories, structured profiles, and revisions;
 - explicit user corrections and supersession state;
@@ -45,9 +47,12 @@ source provenance live in `docs/research/FINDINGS_REGISTER.md` and
 
 ### TB-01 — Authenticated user / application ingress
 
-Authentication establishes the user authority used to create/bind Session
-identity. Prompt data, model output, retrieved memory, and caller-supplied fields
-must not redefine that authority.
+For the implemented browser path, direct Cloud Run IAP performs Google
+authentication and AAK verifies the forwarded signed assertion using Google's
+IAP public keys, exact service audience/issuer, validity, and subject. Verified
+`sub` plus server-controlled `AAK_SCOPE` establish the authority used to
+create/bind Session identity. Prompt data, request JSON, model output, retrieved
+memory, and caller-supplied fields must not redefine that authority.
 
 ### TB-02 — Input trust boundary
 
@@ -131,7 +136,7 @@ permissions must be explicit, least-privilege, reproducible, and scanned.
 | TM-06 | A2A/synthetic `user` event impersonates human approval | authenticated human approval provenance; A2A deferred |
 | TM-07 | prompt/retrieved content becomes control-plane instruction | Input boundary + Context Builder separation |
 | TM-08 | model/tool output leaks secrets/cross-user data | egress checks + scope controls + logging minimization |
-| TM-09 | unauthenticated ADK/Cloud Run surface permits execution | authenticated ingress + patched dependency + least privilege |
+| TM-09 | unauthenticated or forged-identity Cloud Run surface permits execution | direct IAP + cryptographic assertion verification + exact audience/issuer + server-controlled scope + least privilege |
 | TM-10 | dependency/plugin compromise reaches developer/runtime secrets | minimal dependencies + lock/SBOM/scanning + secret isolation |
 | TM-11 | direct memory API bypasses AAK policy | all enabled memory writes behind Memory Write Gate |
 | TM-12 | audit logging captures sensitive payloads | metadata-first/redacted ledger and logging policy |

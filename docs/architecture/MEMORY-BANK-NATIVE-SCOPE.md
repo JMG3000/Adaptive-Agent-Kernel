@@ -116,9 +116,13 @@ That evidence currently verifies:
 
 The controlled retrieval proof does not establish universal semantic
 relevance, and the controlled Correction proof does not establish provider-wide
-Correction behavior across arbitrary facts or workloads. Generalized relevance,
-IAM Conditions, restart-safe authority restoration, Cloud Run runtime behavior,
-and Cloud Run deployment remain unverified or deferred.
+Correction behavior across arbitrary facts or workloads. Restart-safe managed
+Session authority restoration, Cloud Run runtime composition/deployment, and a
+same-origin authenticated browser interaction have separate bounded live
+evidence in `docs/codex/PROJECT-STATE.md`; that evidence does not universalize
+Memory Bank behavior. Generalized relevance, Memory Bank/Session IAM Conditions,
+broader workload behavior, and production readiness remain unverified or
+deferred.
 
 ## Legacy namespace
 

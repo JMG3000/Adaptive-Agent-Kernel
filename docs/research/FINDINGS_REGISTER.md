@@ -2,7 +2,7 @@
 
 Purpose: claim-level evidence register for Adaptive Agent Kernel.\
 Baseline date: 2026-08-21.\
-Last security reconciliation: 2026-08-24.
+Last security reconciliation: 2026-08-31.
 
 | ID | Finding | Classification | Status | Primary evidence |
 |---|---|---|---|---|
@@ -53,6 +53,10 @@ Last security reconciliation: 2026-08-24.
 | F-045 | AAK's security-sensitive Memory Bank adapter uses the native API and constructs exact provider scope only as `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}`; the prior `app_name + raw user_id` projection is superseded and remains unmigrated legacy evidence. | Security architecture choice | DECIDED / VALIDATED | Bossman approval 2026-08-28; S-GCP-MEMORY-API; executable AAK tests/provider proof 2026-08-28 |
 | F-046 | One bounded live native Memory Bank proof completed gated incremental ingestion/generation, retrieved the generated Memory in its exact two-key scope, and returned no Memory for separate same-user/wrong-scope and wrong-user/same-scope provider requests. | Implementation/provider evidence | VALIDATED | Executable AAK provider proof 2026-08-28 |
 | F-047 | One bounded live adaptive-recall proof queried the authenticated native scope with `top_k=2`, admitted only the provider-ranked relevant rank-1 memory, excluded the unrelated returned candidate from active context, and visibly changed the new-Session recommendation from the Cold Start response. This is controlled-scenario evidence, not a universal semantic-relevance policy. | Implementation/provider evidence | VALIDATED | Executable AAK provider proof and regression tests 2026-08-28 |
+| F-048 | One bounded live Correction proof persisted a typed authenticated-user Correction only through `CorrectionService` and the Memory Write Gate, then a new local Session with no current Correction retrieved provider rank 1 stating the corrected preference as current and the stale value as previous; the visible response followed the correction. | Implementation/provider evidence | VALIDATED | Executable AAK provider proof and durable execution evidence 2026-08-30 |
+| F-049 | AAK managed Session restoration uses a nonce-dependent AAK v1 ID bound to authenticated user and scope. One live Agent Platform fresh-process proof and one live Cloud Run distinct-revision/different-instance proof restored exact authority only after exact provider user and Session ID validation. | Implementation/provider evidence | VALIDATED FOR CONTROLLED SCENARIOS | Executable AAK tests and live provider/Cloud Run proofs 2026-08-30 |
+| F-050 | The deployed `aak-mvp` service uses direct Cloud Run IAP and verifies the signed IAP assertion before deriving AAK user identity; server configuration supplies AAK scope. A controlled authenticated Brave/CDP proof reached the UI, completed an HTTP 200 ADK/Gemini interaction, continued the exact same managed Session ID, and produced a different ID after New Session. | Implementation/deployment/browser evidence | VALIDATED FOR ONE CONTROLLED PROOF | Repository tests, read-only Cloud Run/IAP state, and authenticated browser proof 2026-08-31 |
+| F-051 | Read-only Cloud Run/IAP state verifies Custom OAuth and `allAuthenticatedUsers` IAP web access, but the available CLI/IAP surfaces did not expose Google Auth Platform Publishing status for this no-organization project. The controlled authenticated browser proof therefore does not establish unrestricted OAuth eligibility for an arbitrary external judge. | Evidence boundary | UNRESOLVED | Read-only gcloud 582.0.0 evidence 2026-08-31; S-GOOGLE-AUTH-AUDIENCE; S-GOOGLE-OAUTH-STATE |
 
 ## Source registry
 
@@ -100,6 +104,12 @@ https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/agent-l
 
 ### S-GCP-CLOUD-RUN-ADK
 https://docs.cloud.google.com/run/docs/ai/build-and-deploy-ai-agents/deploy-adk-agent
+
+### S-GOOGLE-AUTH-AUDIENCE
+https://support.google.com/cloud/answer/15549945
+
+### S-GOOGLE-OAUTH-STATE
+https://developers.google.com/identity/protocols/oauth2/production-readiness/overview
 
 ### S-NVD-CVE-2026-18236
 https://nvd.nist.gov/vuln/detail/CVE-2026-18236

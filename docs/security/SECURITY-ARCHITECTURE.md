@@ -1,7 +1,7 @@
 # Adaptive Agent Kernel — Security Architecture
 
-**Status:** DECIDED baseline / implementation evidence tracked separately\
-**Date:** 2026-08-28\
+**Status:** DECIDED baseline / bounded implementation evidence tracked separately\
+**Date:** 2026-08-31\
 **Scope:** Option B reference kernel.
 
 ## Approved conceptual architecture
@@ -82,14 +82,47 @@
                        metadata-first • redacted
 ```
 
+## Implemented MVP ingress/runtime boundary
+
+The current judge-facing runtime implements this bounded path:
+
+```text
+Google-authenticated browser
+-> direct Cloud Run IAP
+-> signed X-Goog-IAP-JWT-Assertion
+-> AAK assertion verification (signature + exact issuer + exact audience)
+-> verified sub as user_id + server-controlled AAK_SCOPE
+-> strict /v1/interactions request
+-> managed Session create/restore
+-> Retrieval Gate / Context Builder
+-> optional typed Correction through Memory Write Gate
+-> provider-backed Google ADK Runner
+-> Gemini through Vertex AI
+-> minimal same-origin response
+```
+
+The browser request cannot select identity, scope, authenticated claims,
+project, Runtime ID, or provider coordinates. The deployed service uses direct
+IAP as the external judge ingress. A retained Google Bearer verifier exists for
+local/controlled proof compatibility; it is not a second public judge-access
+architecture.
+
+The implementation/evidence boundary—including direct-IAP policy, the
+controlled authenticated browser proof, and its limitations—is recorded in
+`docs/codex/PROJECT-STATE.md` and
+`docs/architecture/CLOUD-RUN-IAP-COMPOSITION.md`.
+
 ## Architectural rules
 
 ### Authenticated user and Session identity
 
-The application authenticates the user and deterministically establishes AAK
-authority as `(aak_scope, user_id)`. Prompt content, memory, model output, tool
-data, A2A data, Session history, or caller-controlled identifiers cannot create
-or replace that authority.
+For deployed browser traffic, direct IAP performs Google authentication and AAK
+cryptographically verifies the forwarded assertion using Google's IAP public
+keys, exact service audience, issuer, validity, and non-empty canonical subject.
+The verified `sub` establishes `user_id`; required server configuration
+establishes `aak_scope`. Prompt content, request fields, memory, model output,
+tool data, A2A data, Session history, or caller-controlled identifiers cannot
+create or replace that authority.
 
 ### Input trust boundary
 
@@ -253,20 +286,23 @@ It may inspect/block supported Agent Platform or MCP traffic, but:
 - it does not replace Tool Policy Broker authorization;
 - it does not replace human approval provenance.
 
-## Deployment hardening requirements
+## Deployment security boundary
 
-Before Cloud Run deployment:
-- resolve a current non-vulnerable ADK/dependency graph;
-- use only required extras;
-- lock dependencies;
-- generate/retain SBOM evidence;
-- perform dependency/security scanning;
-- validate OCI artifact using rootless Podman;
-- use a dedicated least-privilege runtime service account;
-- authenticate runtime ingress;
-- configure Memory Bank/Sessions IAM boundaries;
+The bounded Cloud Run MVP evidence verifies a locked dependency graph,
+point-in-time dependency scan/SBOM, rootless Podman validation, a dedicated
+runtime service account, direct-IAP authentication, strict application identity
+derivation, and scoped Session/Memory application gates. It does not establish
+universal production hardening.
+
+Remaining deployment/security work includes:
+
+- independently review Memory Bank/Sessions IAM Conditions if adopted;
 - configure Model Armor only with explicitly reviewed coverage/enforcement;
-- ensure observability does not default to raw secret/prompt/memory payloads.
+- implement and verify the deterministic Tool Policy Broker before exposing
+  consequential tools;
+- implement complete output/egress and Audit/Decision Ledger controls; and
+- ensure future observability never defaults to raw assertion, secret, prompt,
+  Session, or memory payloads.
 
 ## Explicit exclusions
 

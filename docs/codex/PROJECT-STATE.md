@@ -1,6 +1,6 @@
 # Adaptive Agent Kernel — Current Project State
 
-**Status date:** 2026-08-30\
+**Status date:** 2026-08-31\
 **Purpose:** Mutable source for the current AAK implementation state, approved
 reference architecture, MVP boundary, and immediate engineering objective.
 
@@ -22,6 +22,8 @@ Update this file when verified project state materially changes.
 Approved documentation baseline for this reconciliation:
 
 - `AGENTS.md`
+- `README.md`
+- `docs/architecture/CLOUD-RUN-IAP-COMPOSITION.md`
 - `docs/architecture/MEMORY-BANK-NATIVE-SCOPE.md`
 - `docs/codex/PROJECT-STATE.md`
 - `docs/research/CROSS-ANALYSIS_REGISTER.md`
@@ -40,16 +42,15 @@ it directly.
 ## Current Git checkpoint
 
 - active branch: **VERIFIED — `main`**
-- verified implementation checkpoint: **VERIFIED — `3eae2cacd6d80958c0326b0e766a8637b0bb1841` (`feat: add private cloud run composition`); this checkpoint is contained in the current local and remote `main` lineage. Later documentation-only successors do not redefine the verified implementation checkpoint; current Git refs remain authoritative for the publication head**
-- parent checkpoint: **VERIFIED — `6483f69481c345186f8e1df236cb5cef792d2d9d`**
+- verified completed-MVP implementation checkpoint: **VERIFIED — `8abe06a976609b2e5b3cfec62dde4a746b23f3bd` (`feat: add oauth-protected judge interface`); this checkpoint is contained in the current local and remote `main` lineage. Later documentation-only successors do not redefine the implementation checkpoint; current Git refs remain authoritative for the publication head**
+- parent checkpoint: **VERIFIED — `e1ca858bb6868b94a382521241a24b901b6785a2`**
 - upstream branch: **VERIFIED — `origin/main`**
 - publication head: **AUTHORITATIVE IN CURRENT GIT REFS — inspect the local and upstream refs directly; do not infer the current publication head from the verified implementation checkpoint**
-- remote recovery/publication: **VERIFIED — the interrupted slice was recovered, completed, committed, and published to its corresponding remote feature branch**
+- publication state before this documentation mutation: **VERIFIED — local `main` and `origin/main` both resolved to `8abe06a976609b2e5b3cfec62dde4a746b23f3bd`, ahead/behind `0/0`, with clean tracked worktree and index**
 - documentation-only successors: **DO NOT CHANGE THE VERIFIED IMPLEMENTATION CHECKPOINT — current Git refs are authoritative for their publication status**
-- pull request: **NOT PERFORMED / pending authorization**
-- `main` integration: **VERIFIED — after a normal fetch and fast-forward reconciliation, local `main` and `origin/main` both contained `f2e85babba7d940dcacb4694c04f9b1c69548186` and the private Cloud Run implementation checkpoint; current Git refs remain authoritative after later documentation-only successors**
-- artifact/build provenance: **VERIFIED FOR THE CONTROLLED DEPLOYMENT — published source checkpoint `3eae2cacd6d80958c0326b0e766a8637b0bb1841` produced `us-central1-docker.pkg.dev/adaptive-agent-kernel-v1-hack/cloud-run-source-deploy/aak-mvp@sha256:8bd7af7ccde583045c6ddb9f1c409cd013b2910eac8b792d654c2ca645975e40`; a retained local CycloneDX 1.5 SBOM and current dependency audit cover the locked deployment dependency set**
-- deployment provenance: **VERIFIED FOR ONE CONTROLLED BOUNDED PRIVATE CLOUD RUN DEPLOYMENT — service `aak-mvp`, region `us-central1`, final proof revision `aak-mvp-restore1`; this does not establish production readiness**
+- `main` integration: **VERIFIED — the private Cloud Run composition, bounded deployment evidence, and OAuth/IAP judge-interface implementation are integrated into the default branch**
+- artifact/build provenance: **VERIFIED FOR THE CURRENT CONTROLLED DEPLOYMENT — source checkpoint `8abe06a976609b2e5b3cfec62dde4a746b23f3bd` produced `us-central1-docker.pkg.dev/adaptive-agent-kernel-v1-hack/cloud-run-source-deploy/aak-mvp@sha256:c23e1f34ecf90ccba521328c4017b497782296458196fccfa4f8885678ff59b2`; earlier deployment artifacts remain historical evidence**
+- deployment provenance: **VERIFIED FOR ONE CONTROLLED BOUNDED IAP-PROTECTED CLOUD RUN MVP — service `aak-mvp`, region `us-central1`, current Ready revision `aak-mvp-iap8abe06a`; this does not establish broad production readiness**
 
 The local and remote default branch contain the published private Cloud Run
 composition implementation and bounded evidence checkpoints. Git history
@@ -81,18 +82,21 @@ The product should:
 
 Current reference path:
 
-`gemini-3.5-flash`
-→ Vertex AI
-→ Google ADK for Python
-→ Agent Platform Sessions
-→ explicit AAK memory-ingestion policy
-→ native incremental/event-subset ingestion with provider scope derived from
-  authenticated AAK `{aak_scope, user_id}` authority
-→ Vertex AI Memory Bank
-→ structured-profile baseline
-→ on-demand episodic retrieval
-→ explicit correction precedence
-→ agent response
+authenticated browser
+→ Google OAuth / direct Cloud Run IAP
+→ `aak-mvp` in `us-central1`
+→ signed IAP assertion verification and server-controlled AAK scope
+→ managed Agent Platform Session create/restore
+→ native exact-scope Memory Bank retrieval
+→ Retrieval Gate / Context Builder
+→ optional typed explicit Correction through the Memory Write Gate
+→ Google ADK `Runner` and `App`
+→ `gemini-3.5-flash` through Vertex AI
+→ same-origin browser response
+
+The implemented path is detailed in
+`docs/architecture/CLOUD-RUN-IAP-COMPOSITION.md`. Structured profiles remain an
+approved conceptual boundary but are not implemented in the current MVP.
 
 Current location decisions:
 
@@ -168,9 +172,12 @@ Current approved environment/delivery path:
 
 native Linux development
 → rootless Podman clean-room build/test validation
-→ OCI artifact
-→ CI/CD when authorized
-→ Cloud Run deployment
+→ locked source / OCI artifact
+→ explicitly authorized Cloud Build source deployment
+→ Cloud Run
+
+CI/CD automation remains deferred; the controlled deployed revisions were
+operator-authorized and their source/image provenance was verified directly.
 
 ### Hackathon delivery strategy
 
@@ -269,8 +276,10 @@ Unless Bossman explicitly expands scope, do not add:
 - speculative platform integrations;
 - unrelated feature work.
 
-Judge-facing UI work may follow a working kernel, but it must not displace the
-reference kernel and behavioral evidence as the critical path.
+The bounded judge-facing UI and direct-IAP composition are implemented. Do not
+expand them into a second frontend, custom identity system, load balancer,
+custom domain, or unrelated application platform without a demonstrated and
+approved need.
 
 ## Current implementation state
 
@@ -279,11 +288,11 @@ As of this state record:
 - root Codex operating instructions: **PRESENT — owner reported**
 - project-state record: **PRESENT — owner reported**
 - Python runtime support: **DECIDED — AAK v0.1 supports Python 3.14.x; the project-managed baseline and current tested interpreter are Python 3.14.7, pinned by `.python-version`, and the project constraint remains `>=3.14,<3.15`**
-- Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.7, persistent `uv==0.12.5`, `google-adk==2.8.0`, `google-cloud-aiplatform[agent-engines]==1.165.1`, `pyproject.toml`, and `uv.lock`; all 85 lock records were inspected and 82 packages synchronize without conflicts**
+- Python dependency manifest and lock: **LOCALLY VERIFIED — Python 3.14.7, persistent `uv==0.12.5`, and direct dependencies `fastapi==0.141.1`, `google-adk==2.8.0`, `google-auth==2.57.0`, `google-cloud-aiplatform[agent-engines]==1.165.1`, and `uvicorn==0.52.4`; `pyproject.toml` and `uv.lock` resolve 85 records and synchronize 82 installed packages without conflicts**
 - dependency vulnerability checks: **LOCALLY VERIFIED — pinned `pip-audit==2.10.1` reported no known findings for the exact locked deployment dependency export on 2026-08-30; a CycloneDX 1.5 SBOM recorded 84 dependency components. This is point-in-time evidence, not a permanent safety guarantee**
-- application scaffold: **PARTIAL — accepted local identity/session and Memory Write Gate seams plus a minimal Google ADK Agent/App, managed-Sessions adapter, native Memory Bank adapter, bounded Retrieval Gate, minimal Context Builder, typed explicit-Correction boundary, and private Cloud Run HTTP composition are present**
-- runnable ADK agent: **LOCALLY VERIFIED — the actual ADK Agent/App executes through `InMemoryRunner` with a fake `BaseLlm` only at the nondeterministic model boundary**
-- Gemini/Vertex invocation: **VERIFIED — on 2026-08-26, one real interaction exercised the existing AAK ADK application seam through Vertex AI using `gemini-3.5-flash` in the decided `us` model location and returned a non-empty response with no provider, authentication, or configuration error**
+- completed MVP composition: **VERIFIED — authenticated Cloud Run/IAP ingress, the minimal same-origin UI, strict interaction API, managed-Sessions adapter, native Memory Bank adapter, Memory Write Gate, bounded Retrieval Gate, Context Builder, typed explicit-Correction boundary, Google ADK App/Runner, and Gemini/Vertex response path are present in the `8abe06a976609b2e5b3cfec62dde4a746b23f3bd` implementation checkpoint**
+- runnable ADK agent: **VERIFIED FOR LOCAL AND CONTROLLED LIVE PATHS — deterministic local tests retain `InMemoryRunner` with a fake `BaseLlm` at the nondeterministic boundary; the Cloud Run composition injects the provider-backed public ADK `Runner` with `VertexAiSessionService` and no hard-coded local user/Session identity**
+- Gemini/Vertex invocation: **VERIFIED FOR BOUNDED LIVE PROOFS — the earlier direct proof and the 2026-08-31 authenticated judge-browser interaction both exercised the AAK ADK application path through Vertex AI using `gemini-3.5-flash` in `us` and returned non-empty responses**
 - Agent Platform Runtime: **VERIFIED — one lightweight Runtime named `AAK Managed Sessions` with resource ID `3642145461147533312` exists in the decided `us` Agent Platform location; no agent code was deployed by its creation**
 - Agent Platform Sessions integration: **VERIFIED — on 2026-08-27, the AAK adapter created exactly one synthetic managed Session with the provider-minimum `86400s` TTL, retrieved it for the authenticated AAK identity, and denied cross-user and same-user/wrong-scope reads before provider access. On 2026-08-30, one controlled bounded proof created an AAK-scoped managed Session through the real provider in Process A, then Process B began with a fresh empty `SessionService`, denied wrong-scope and wrong-user requests before provider access, made exactly one provider `get_session` call for the original identity, and reconstructed the exact local user/scope/Session authority**
 - native Memory Bank adapter: **VERIFIED — the adapter uses `agentplatform.Client(...).aio.agent_engines.memories`, derives the exact provider scope as `{"aak_scope": authenticated_scope, "user_id": authenticated_user_id}`, and exposes no supported direct persistent-mutation method outside the Memory Write Gate**
@@ -293,7 +302,7 @@ As of this state record:
 - Memory Write Gate: **VERIFIED FOR THE CURRENT WRITE SEAM — SEC-MW-001–004 and native provider-boundary tests pass locally, and the typed explicit-Correction path persists its fixed-shape authorized Session event only through the same gate; provider-returned data, model data, and Session history do not authorize writes**
 - legacy Memory Bank namespace: **SUPERSEDED / MIGRATION DEBT — the 2026-08-27 `VertexAiMemoryBankService` proof used the old `app_name + raw user_id` projection; AAK does not dual-read, migrate, delete, or use that namespace as native-adapter acceptance evidence**
 - Retrieval Gate / minimal Context Builder: **VERIFIED FOR THE CONTROLLED BOUNDED PROOF — locally, ambiguous identity and malformed rank-1 provider data fail closed; only the provider-ranked structurally valid rank-1 result is admitted, while application control, current request, and retrieved memory/provenance remain structurally separate and memory remains untrusted data**
-- authenticated identity/session binding: **PARTIAL — Slice 1 and the managed-Sessions adapter are locally verified. Restart-safe managed Session authority binding is LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE TRUSTED-PROVIDER-CREATION ASSUMPTION: AAK generates a 62-character `aak1-<24 hex nonce>-<32 hex binding>` Session ID. The 128-bit truncated SHA-256 binding covers version, the 96-bit `secrets` nonce, authenticated `user_id`, and authenticated scope, so separate Sessions for one authority do not expose a stable binding value. The ID is neither a signature nor a bearer authorization token. A fresh local `SessionService` restores authority only with authenticated identity, a matching scoped ID, exact provider-record existence, and an exact returned provider user and Session ID. Wrong-user, wrong-scope, malformed, wrong-version, binding-mismatch, provider-create failure, provider-substitution, and existing-conflict cases fail closed. Legacy non-AAK scoped Session IDs fail closed for authority restoration after process loss. LIVE AGENT PLATFORM FRESH-PROCESS SESSION AUTHORITY RESTORATION: VERIFIED FOR ONE CONTROLLED BOUNDED SYNTHETIC PROOF. LIVE CLOUD RUN FRESH-INSTANCE MANAGED SESSION RESTORATION: VERIFIED FOR ONE CONTROLLED BOUNDED SYNTHETIC PROOF — revision `aak-mvp-aud1` created the Session, distinct revision `aak-mvp-restore1` handled the continuation on a different logged instance, and the exact Session ID was restored without carrying process-local authority. Production human ingress, universal restart behavior, and production readiness remain unverified**
+- authenticated identity/session binding: **VERIFIED FOR THE IMPLEMENTED BOUNDED PATHS — local fail-closed cases and the trusted-provider-creation assumption remain as previously documented. AAK generates a 62-character `aak1-<24 hex nonce>-<32 hex binding>` Session ID whose 128-bit truncated SHA-256 binding covers version, the 96-bit `secrets` nonce, authenticated `user_id`, and authenticated scope. The ID is neither a signature nor a bearer token. Fresh authority restoration requires authenticated identity, matching scoped ID, exact provider-record existence, and exact returned provider user/Session ID. One live Agent Platform fresh-process proof and one live Cloud Run fresh-revision/different-instance proof passed. On 2026-08-31 the authenticated browser proof also continued the exact same managed Session ID and produced a different ID after New Session. Universal restart/provider behavior and production readiness remain unverified**
 - deterministic Tool Policy Broker: **NOT VERIFIED**
 - output/egress security gate: **NOT VERIFIED**
 - Audit/Decision Ledger: **NOT VERIFIED**
@@ -302,11 +311,14 @@ As of this state record:
 - episodic retrieval: **PARTIAL — bounded exact-scope native similarity retrieval and rank-1 admission are verified; generalized relevance policy and broader retrieval behavior are not verified**
 - correction precedence: **VERIFIED FOR THE CONTROLLED BOUNDED LIVE PROOF — `ExplicitCorrection(statement)` is accepted only through the typed trusted application boundary. In a clean synthetic exact provider scope, WRITE 1 generated stale state, then the fixed-shape explicit-Correction event persisted through `CorrectionService` → `MemoryWriteGate` → native Memory Bank. A new local recall Session contained neither X nor Y, `current_correction` was `None`, and one exact authenticated-scope `top_k=2` request returned provider rank 1 with corrected Y as current and X as previous. Only rank 1 entered active context as `UNTRUSTED_DATA`, and one application interaction visibly followed Y. Execution/output provenance was independently reconciled to durable Codex `CommandExecution` `exec-d78693b8-4a40-40f6-816c-3db8dfbe1ce2` with exit code 0 and complete stdout. This proves SEC-MW-005 and SEC-MR-003 only for the controlled scenario, not universal Correction behavior**
 - five regression families: **VERIFIED FOR BOUNDED EXECUTABLE SCENARIOS — Cold Start, Recall, provider-ranked Relevance, visible Adaptation, and Correction now each have bounded executable evidence. This does not establish universal semantic relevance, universal Correction behavior, broad Cloud Run workload correctness, or production readiness**
+- local regression suite: **VERIFIED — the README command passed all 68 tests on 2026-08-31 against the completed MVP implementation tree; its network/model boundaries are faked, so live claims continue to require their separate provider/browser evidence**
 - rootless Podman/OCI project validation: **LOCALLY VERIFIED — the repository-owned Cloud Run image built successfully with rootless Podman; two credential-free container instances honored `PORT`, served `/healthz`, rejected unauthenticated `/v1/interactions`, and the second instance reproduced health after restart. This is not a live Cloud Run deployment proof**
 - CI/CD: **NOT VERIFIED**
-- Cloud Run deployment: **VERIFIED FOR ONE CONTROLLED BOUNDED PRIVATE MVP PROOF — `aak-mvp` in `us-central1` is Ready with IAM-authenticated invocation, one CPU, 1 GiB, service-level min/max 0/1, concurrency 1, request-based billing, no GPU, no VPC, and dedicated runtime identity `aak-cloud-run-runtime@adaptive-agent-kernel-v1-hack.iam.gserviceaccount.com`. No public invoker binding exists**
-- private Cloud Run HTTP composition: **VERIFIED FOR ONE CONTROLLED BOUNDED LIVE DEPLOYMENT — a keyless audience-bound proof caller passed Cloud Run IAM and AAK token verification, server scope remained `aak-mvp`, managed Session creation and exact-scope retrieval ran through the deployed composition, and the provider-backed ADK Runner returned a non-empty Gemini response. A successor revision and different logged instance restored the same Session ID. Correction persistence was not re-exercised. Production human ingress, universal restart/provider behavior, and production readiness remain unverified**
-- final Devpost submission evidence: **NOT VERIFIED**
+- Cloud Run deployment: **VERIFIED FOR THE CONTROLLED BOUNDED MVP — `aak-mvp` in `us-central1` is Ready at `https://aak-mvp-okccsm7rca-uc.a.run.app`, revision `aak-mvp-iap8abe06a`, image digest `sha256:c23e1f34ecf90ccba521328c4017b497782296458196fccfa4f8885678ff59b2`, with one CPU, 1 GiB, service-level min/max 0/1, concurrency 1, request-based billing, no GPU, no VPC, and dedicated runtime identity `aak-cloud-run-runtime@adaptive-agent-kernel-v1-hack.iam.gserviceaccount.com`; a target-only project IAM read showed `roles/aiplatform.user` for that runtime identity**
+- direct-IAP browser ingress: **VERIFIED FOR ONE CONTROLLED AUTHENTICATED PROOF — direct IAP is enabled; the Cloud Run invoker policy contains no `allUsers`/`allAuthenticatedUsers`; the service-scoped IAP policy grants only `roles/iap.httpsResourceAccessor` to `allAuthenticatedUsers`; anonymous GET redirected to Google authentication and anonymous POST could not invoke AAK. The deployed application verifies the signed IAP assertion with Google's public keys, exact issuer `https://cloud.google.com/iap`, and exact audience `/projects/491899793855/locations/us-central1/services/aak-mvp`; verified `sub` supplies `user_id` and server `AAK_SCOPE=aak-mvp` supplies scope**
+- authenticated judge UI: **VERIFIED FOR ONE CONTROLLED BROWSER PROOF — after interactive Google authentication in dedicated Brave, the UI loaded, the first same-origin interaction returned HTTP 200 and a non-empty ADK/Gemini response, continuation returned the exact same managed Session ID, and New Session returned a different managed Session ID while retaining the same authenticated browser session. No password, MFA value, cookie, OAuth token, raw IAP JWT, browser credential storage, or downloaded OAuth credential was inspected. The initial Playwright-launched authentication attempt returned Google HTTP 400; its cause is unproven and the approved loopback-CDP fallback completed the proof**
+- OAuth audience/publishing status: **PARTIAL / UNABLE TO DETERMINE — read-only IAP settings prove Custom OAuth is saved, and prior operator evidence identifies an External audience, but the current read-only gcloud/IAP surfaces do not expose Google Auth Platform Publishing status for this no-organization project. The controlled Bossman browser proof and `allAuthenticatedUsers` IAP authorization do not by themselves prove arbitrary external judge eligibility. Downstream submission work must inspect Google Auth Platform → Audience and confirm `In production`, or preserve/disclose the resulting limitation**
+- final Devpost submission package: **NOT YET CREATED — the repository MVP and bounded judge-browser proof are complete; the final architecture image, project story, 17-field worksheet, validation report, and submission artifact package remain downstream documentation/submission work**
 
 Do not promote any item based only on historical artifacts or plans.
 
@@ -330,15 +342,21 @@ because it exists.
 
 The bounded live later/new-Session Correction evidence boundary, restart-safe
 managed Session authority-binding slice, private Cloud Run composition, one
-controlled live deployment, and one controlled fresh-revision restoration proof
-are complete. No successor slice is selected by this state update.
+controlled live deployment, one controlled fresh-revision restoration proof,
+direct IAP ingress, and the authenticated judge-browser interaction/
+continuation/New Session proof are complete. No successor implementation slice
+is selected by this state update.
 
-**NEXT IMPLEMENTATION OBJECTIVE: PENDING CURRENT BOSSMAN PLANNING
-CONFIRMATION.**
+**NEXT DOCUMENTATION OBJECTIVE: REGENERATE THE FINAL ARCHITECTURE DIAGRAM,
+DEVPOST STORY, 17-FIELD SUBMISSION WORKSHEET, JUDGE INSTRUCTIONS, VALIDATION
+REPORT, AND CONSOLIDATED ARTIFACT PACKAGE FROM THIS REPOSITORY STATE.**
 
-Tool Policy Broker, egress/audit, generalized relevance, production human
-ingress, broader workload/restart behavior, and judge-facing demo readiness
-remain incomplete or unverified.
+Before describing the hosted URL as universally judge-accessible, the
+downstream documentation/submission thread must resolve the Google Auth
+Platform Publishing-status evidence gap. Tool Policy Broker, complete
+egress/audit controls, structured profiles, generalized relevance, universal
+restart/provider behavior, CI/CD, A2A/fleet behavior, and broad production
+readiness remain incomplete, deferred, or unverified.
 
 ## Documentation architecture
 

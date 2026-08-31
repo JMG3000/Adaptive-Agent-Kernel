@@ -1,115 +1,100 @@
 # Adaptive Agent Kernel
 
-Adaptive Agent Kernel (AAK) is a Track 2 — Collaborative Partner project for
-the All Things Agentic Hackathon. The approved implementation direction is the
-Option B reference kernel, developed as small, secure, testable vertical
-slices.
+Adaptive Agent Kernel (AAK) is a bounded single-agent adaptive collaboration
+and memory kernel built for Track 2 — Collaborative Partner of the All Things
+Agentic Hackathon. It uses Google ADK and Gemini 3.5 Flash through Vertex AI,
+managed Agent Platform Sessions, native Memory Bank, and a private Cloud Run
+browser interface protected by direct Identity-Aware Proxy (IAP).
 
-## Current local checkpoint
+AAK is not a multi-agent fleet, A2A system, central orchestration hub, or
+generalized autonomous workflow engine.
 
-The repository currently contains locally verified foundations for:
+## Completed MVP
 
-- authenticated identity and Session isolation;
-- the SEC-MW-001–004 Memory Write Gate around fake and provider-backed
-  incremental-memory sinks;
-- a Google ADK `Agent` and `App` configured for `gemini-3.5-flash` through
-  explicit Vertex AI project and model-location inputs;
-- deterministic ADK execution through `InMemoryRunner`, with a fake `BaseLlm`
-  only at the model/network boundary;
-- an AAK-authorized `VertexAiSessionService` adapter that preserves the
-  authenticated user/scope boundary, creates provider-compatible AAK v1
-  Session IDs with nonce-dependent bindings over both authority dimensions,
-  and fails closed before provider access on mismatched restoration attempts;
-- an AAK native Memory Bank adapter that derives the exact provider scope
-  `{aak_scope, user_id}` from authenticated AAK authority and keeps incremental
-  provider writes behind the existing Memory Write Gate;
-- a bounded Retrieval Gate and minimal Context Builder that query the current
-  authenticated native scope with `top_k=2`, admit only the provider-ranked
-  structurally valid rank-1 result, and keep memory/provenance as untrusted data
-  separate from application control and the current request;
-- a typed explicit-Correction boundary that keeps authenticated current-user
-  correction data structurally separate, gives it active precedence over
-  conflicting retrieved memory, and persists its fixed-shape Session event only
-  through the existing Memory Write Gate.
+The current `main` lineage contains the completed judge-facing MVP:
 
-One separately authorized live smoke test also exercised the existing AAK ADK
-application seam through Vertex AI with `gemini-3.5-flash` in the decided `us`
-model location and received a successful model response. The Agent Platform
-location is independently decided as `us`; the private MVP Cloud Run service is
-deployed in the decided `us-central1` region.
-One bounded live managed-Sessions proof also created and retrieved a synthetic
-Session through the AAK adapter and verified that cross-user and wrong-scope
-reads were denied before provider access. One bounded live native Memory Bank
-proof also passed one synthetic Session event through the AAK Memory Write
-Gate, completed provider generation, found the generated memory in the
-intended exact scope, and observed no result from provider queries using the
-corresponding wrong-scope and wrong-user scopes.
-One bounded live adaptive-recall proof then used fresh synthetic memory and a
-new Session to demonstrate Cold Start, Recall, and a visible recommendation
-change. For that controlled Relevance case, the applicable memory ranked first,
-only rank 1 entered active context, and the unrelated returned candidate did
-not. This is not a universal semantic-relevance policy, and no similarity
-distance threshold is used.
+- Google/IAP-authenticated browser ingress with verified IAP assertion subject
+  mapped to AAK `user_id` and server-controlled `AAK_SCOPE`;
+- a strict same-origin `POST /v1/interactions` contract that does not accept
+  caller-selected identity, scope, or provider coordinates;
+- a Google ADK `Agent`/`App` using `gemini-3.5-flash` through Vertex AI;
+- provider-backed ADK execution through `Runner` and
+  `VertexAiSessionService`;
+- managed Sessions with nonce-dependent AAK v1 identity/scope bindings and
+  bounded fresh-process/fresh-instance restoration evidence;
+- a Memory Write Gate around supported persistent-memory writes;
+- native Memory Bank scope derived exactly from authenticated
+  `{aak_scope, user_id}` authority;
+- bounded on-demand retrieval (`top_k=2`) that admits only a structurally valid
+  provider-ranked rank-1 memory as `UNTRUSTED_DATA`;
+- separated current request, optional typed explicit Correction, and retrieved
+  memory context;
+- bounded executable evidence for Cold Start, Recall, a controlled Relevance
+  case, Adaptation, and Correction; and
+- a minimal server-rendered browser UI with Session continuation and New
+  Session controls.
 
-The local ADK in-memory runner remains temporary execution state. Managed
-Session persistence is provider-backed for this bounded seam. AAK now encodes a
-non-secret nonce-dependent identity/scope binding in generated AAK v1 managed
-Session IDs and, with a fresh local `SessionService`, reconstructs local
-authority only after authenticated identity, exact provider-record existence,
-and the exact returned provider user and Session ID validate. The scoped ID is
-neither a signature nor a bearer authorization token. Restart-safe managed
-Session authority binding is **LOCALLY VERIFIED WITH FAKE PROVIDER UNDER THE
-TRUSTED-PROVIDER-CREATION ASSUMPTION**. One controlled bounded live Agent
-Platform proof then created an AAK-scoped managed Session and restored its
-user/scope authority from a genuinely fresh process; wrong-user and wrong-scope
-requests were denied before provider access. One later controlled Cloud Run
-proof restored the same managed Session on a distinct revision and instance.
-Production human ingress, broader restart behavior, and production readiness
-remain unverified. Legacy non-AAK managed Session IDs still fail closed for
-restoration after local authority is lost.
-Memory Bank writes, bounded exact-scope similarity retrieval, rank-1 admission,
-and minimal context construction are provider-backed for this bounded seam.
-One separately authorized bounded live Correction proof persisted a stale
-preference, persisted a typed explicit Correction through the native Memory
-Bank write path, created a new empty local Session with no current typed
-correction, retrieved the corrected provider-ranked memory in the exact scope,
-admitted only rank 1 through the Retrieval Gate, and produced visibly corrected
-application behavior. Generalized semantic relevance, production readiness,
-and the complete Option B kernel remain **not verified**.
+The evidence is deliberately bounded. It does not establish generalized
+semantic relevance, universal Memory Bank correction behavior, universal
+restart behavior, a deterministic Tool Policy Broker, a complete output/egress
+gate, an Audit/Decision Ledger, A2A/fleet behavior, or broad production
+readiness.
 
-The private Cloud Run HTTP composition is **VERIFIED FOR ONE CONTROLLED BOUNDED
-LIVE DEPLOYMENT**. Service `aak-mvp` runs in `us-central1` with IAM-authenticated
-ingress, a dedicated least-privilege runtime identity, server-controlled scope
-`aak-mvp`, and the published composition checkpoint. A keyless proof caller
-completed one managed-Session/Gemini interaction; a distinct successor revision
-and instance then restored and continued the same Session. The local fake-boundary
-and rootless-container evidence remains applicable. Production human ingress,
-universal restart behavior, broader workload behavior, and production readiness
-remain unverified.
+## Hosted judge UI
 
-See [`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md) for the current
-implementation boundary and [`docs/security/`](docs/security/) for the approved
-security contract.
+Hosted service:
+
+`https://aak-mvp-okccsm7rca-uc.a.run.app`
+
+The deployed `aak-mvp` service in `us-central1` requires Google authentication
+through direct Cloud Run IAP. A controlled browser proof verified UI access,
+one successful ADK/Gemini interaction, continuation with the exact same managed
+Session ID, and New Session creation with a different managed Session ID. The
+AAK page JavaScript never receives or constructs Google credentials.
+
+Current read-only Google Cloud evidence confirms Custom OAuth, direct IAP, and
+`allAuthenticatedUsers` with `roles/iap.httpsResourceAccessor`. The Google Auth
+Platform **publishing status could not be established through the available
+read-only CLI/IAP surfaces**. The controlled Bossman browser proof is verified,
+but unrestricted OAuth eligibility for an arbitrary external judge is not.
+Before promising universal judge access, the submission team must inspect
+Google Auth Platform → Audience and confirm whether Publishing status is **In
+production**; if it remains **Testing**, that limitation must be resolved or
+disclosed without sharing OAuth credentials.
+
+When external judge eligibility is confirmed, the intended workflow is:
+
+1. Open the hosted project URL.
+2. Complete Google authentication when prompted.
+3. Enter a request and select **Send**.
+4. Submit a follow-up to continue the same managed Session.
+5. Select **New Session** to start a different managed Session.
+6. Use **Optional explicit Correction** to correct a remembered preference or
+   fact when relevant.
+
+No API key, OAuth secret, pasted token, or Google Cloud project membership is
+part of the browser workflow.
 
 ## Local setup and verification
 
-AAK v0.1 supports Python 3.14. The current checkpoint was tested with Python
-3.14.7, pins the project interpreter in `.python-version`, and pins its
-dependency graph in `uv.lock`.
+AAK v0.1 supports Python 3.14.x. The current checkpoint uses Python 3.14.7,
+pins the project interpreter in `.python-version`, and locks dependencies in
+`uv.lock`.
 
 Prerequisites:
 
 - Python 3.14;
 - `uv` 0.12.5.
 
-Install the tested `uv` release into the persistent user executable directory
-without changing shell profiles:
+Locked direct runtime dependencies are `fastapi==0.141.1`,
+`google-adk==2.8.0`, `google-auth==2.57.0`,
+`google-cloud-aiplatform[agent-engines]==1.165.1`, and `uvicorn==0.52.4`.
+
+Install the tested `uv` release without changing shell profiles:
 
 ```bash
 curl -LsSf https://astral.sh/uv/0.12.5/install.sh |
   env UV_INSTALL_DIR="$HOME/.local/bin" UV_NO_MODIFY_PATH=1 sh
-command -v uv
-command -v uvx
 uv --version
 ```
 
@@ -119,7 +104,7 @@ Create the project-local environment from the lockfile:
 uv sync --locked
 ```
 
-Run the accepted local regression tests:
+Run the accepted local regression suite:
 
 ```bash
 .venv/bin/python -m unittest \
@@ -134,6 +119,54 @@ Run the accepted local regression tests:
   -v
 ```
 
-These local regression tests do not authenticate to Google Cloud and do not by
-themselves prove live Vertex AI, managed-Sessions, or Memory Bank execution. No
-Google Cloud project or Vertex location is defaulted by the application.
+The expected result at this checkpoint is **68 tests passed**. These tests fake
+network/model boundaries and do not by themselves prove live Google Cloud
+behavior; the separate bounded live evidence is summarized in
+[`docs/codex/PROJECT-STATE.md`](docs/codex/PROJECT-STATE.md).
+
+## Local HTTP startup
+
+The repository-owned ASGI entrypoint is `aak.cloud_run:app`. These configuration
+values are required before an interaction; `/healthz` and `/` are intentionally
+lazy and do not initialize provider clients:
+
+```text
+GOOGLE_CLOUD_PROJECT
+VERTEX_MODEL_LOCATION
+AGENT_PLATFORM_LOCATION
+AGENT_RUNTIME_ID
+AAK_OIDC_AUDIENCE
+AAK_IAP_AUDIENCE
+AAK_SCOPE
+```
+
+Start the local server with:
+
+```bash
+PORT=8080 .venv/bin/python -m aak.cloud_run
+```
+
+Then open `http://127.0.0.1:8080/` or check
+`http://127.0.0.1:8080/healthz`. Local startup is not an authentication bypass:
+successful interactions still require a cryptographically verified Google
+identity and valid provider configuration/credentials.
+
+## Current deployed configuration
+
+The non-secret deployed coordinates are:
+
+```text
+Google Cloud project:       adaptive-agent-kernel-v1-hack
+Cloud Run service/region:   aak-mvp / us-central1
+Vertex model location:      us
+Agent Platform location:    us
+Agent Platform Runtime ID:  3642145461147533312
+AAK server scope:           aak-mvp
+Gemini model:               gemini-3.5-flash
+```
+
+See [`docs/architecture/CLOUD-RUN-IAP-COMPOSITION.md`](docs/architecture/CLOUD-RUN-IAP-COMPOSITION.md)
+for the implemented request path,
+[`docs/architecture/MEMORY-BANK-NATIVE-SCOPE.md`](docs/architecture/MEMORY-BANK-NATIVE-SCOPE.md)
+for the persistent-memory boundary, and [`docs/security/`](docs/security/) for
+the approved security contract and remaining controls.
