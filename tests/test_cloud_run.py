@@ -1,11 +1,13 @@
 import unittest
 from dataclasses import dataclass
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import httpx
 from google.adk.apps import App
 from google.adk.sessions import VertexAiSessionService
 
+import aak.cloud_run as cloud_run
 from aak.adaptive_recall import ADAPTIVE_CONTROL_INSTRUCTION
 from aak.cloud_run import (
     CloudRunSettings,
@@ -99,14 +101,16 @@ def settings():
         agent_platform_location="us",
         agent_runtime_id="123",
         oidc_audience="https://aak.example",
+        iap_audience="/projects/491899793855/locations/us-central1/services/aak-mvp",
         scope="tenant-a",
     )
 
 
-def build_test_app(verifier, components):
+def build_test_app(verifier, components, *, iap_verifier=None):
     return create_app(
         settings_loader=settings,
         token_verifier=verifier,
+        iap_verifier=iap_verifier,
         components_loader=lambda config: components,
     )
 
@@ -132,6 +136,137 @@ class CloudRunAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({"status": "ok"}, response.json())
         self.assertEqual([], called)
         self.assertEqual([], verifier.calls)
+
+    async def test_judge_ui_loads_without_provider_or_authentication_work(self):
+        verifier = FakeVerifier()
+        iap_verifier = FakeVerifier()
+        loaded = []
+        app = create_app(
+            settings_loader=lambda: (_ for _ in ()).throw(AssertionError("settings")),
+            token_verifier=verifier,
+            components_loader=lambda config: loaded.append(config),
+        )
+
+        response = await self.request(app, "GET", "/")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("text/html; charset=utf-8", response.headers["content-type"])
+        self.assertIn("Adaptive Agent Kernel", response.text)
+        self.assertIn('action="/v1/interactions"', response.text)
+        self.assertIn("New Session", response.text)
+        self.assertIn("Google ADK", response.text)
+        self.assertIn("Gemini 3.5 Flash", response.text)
+        self.assertNotIn("Authorization", response.text)
+        self.assertNotIn("Bearer", response.text)
+        self.assertEqual([], loaded)
+        self.assertEqual([], verifier.calls)
+        self.assertEqual([], iap_verifier.calls)
+
+    async def test_verified_iap_subject_and_server_scope_reach_existing_path(self):
+        bearer_verifier = FakeVerifier(error="bearer must not be used")
+        iap_verifier = FakeVerifier({"sub": "iap-subject-9"})
+        sessions = FakeManagedSessions()
+        retrieval = FakeRetrievalGate()
+        executor = FakeExecutor()
+        components = FakeComponents(
+            sessions,
+            FakeCorrectionService(),
+            retrieval,
+            FakeApplication(),
+            executor,
+        )
+
+        response = await self.request(
+            build_test_app(
+                bearer_verifier,
+                components,
+                iap_verifier=iap_verifier,
+            ),
+            "POST",
+            "/v1/interactions",
+            headers={"X-Goog-IAP-JWT-Assertion": "signed-iap-assertion"},
+            json={"request": "Help me decide."},
+        )
+
+        self.assertEqual(200, response.status_code)
+        identity, ttl = sessions.created[0]
+        self.assertEqual(AuthenticatedIdentity("iap-subject-9", "tenant-a"), identity)
+        self.assertEqual("86400s", ttl)
+        self.assertEqual(
+            [("signed-iap-assertion", settings().iap_audience)],
+            iap_verifier.calls,
+        )
+        self.assertEqual([], bearer_verifier.calls)
+        self.assertEqual((identity, "Help me decide."), retrieval.calls[0])
+        self.assertEqual(identity, executor.calls[0][1])
+        self.assertEqual("aak1-session", response.json()["session_id"])
+
+    async def test_invalid_or_missing_iap_subject_fails_closed(self):
+        components = FakeComponents(
+            FakeManagedSessions(),
+            FakeCorrectionService(),
+            FakeRetrievalGate(),
+            FakeApplication(),
+            FakeExecutor(),
+        )
+        cases = (
+            FakeVerifier(error="invalid signature or audience"),
+            FakeVerifier({}),
+            FakeVerifier({"sub": ""}),
+            FakeVerifier({"sub": " noncanonical "}),
+            FakeVerifier({"sub": 7}),
+        )
+        for iap_verifier in cases:
+            with self.subTest(iap_verifier=iap_verifier):
+                response = await self.request(
+                    build_test_app(
+                        FakeVerifier(error="bearer must not be used"),
+                        components,
+                        iap_verifier=iap_verifier,
+                    ),
+                    "POST",
+                    "/v1/interactions",
+                    headers={"X-Goog-IAP-JWT-Assertion": "untrusted-assertion"},
+                    json={"request": "hello"},
+                )
+                self.assertEqual(401, response.status_code)
+                self.assertEqual(
+                    {"detail": "authentication or authorization failed"},
+                    response.json(),
+                )
+                self.assertNotIn("untrusted-assertion", response.text)
+
+    async def test_request_body_cannot_supply_identity_or_provider_authority(self):
+        components = FakeComponents(
+            FakeManagedSessions(),
+            FakeCorrectionService(),
+            FakeRetrievalGate(),
+            FakeApplication(),
+            FakeExecutor(),
+        )
+        forbidden = {
+            "user_id": "attacker",
+            "scope": "other-tenant",
+            "sub": "attacker",
+            "claims": {"sub": "attacker"},
+            "project": "other-project",
+            "agent_runtime_id": "999",
+            "provider_coordinates": {"location": "elsewhere"},
+        }
+        for name, value in forbidden.items():
+            with self.subTest(field=name):
+                response = await self.request(
+                    build_test_app(
+                        FakeVerifier(),
+                        components,
+                        iap_verifier=FakeVerifier({"sub": "iap-subject-9"}),
+                    ),
+                    "POST",
+                    "/v1/interactions",
+                    headers={"X-Goog-IAP-JWT-Assertion": "signed-iap-assertion"},
+                    json={"request": "hello", name: value},
+                )
+                self.assertEqual(422, response.status_code)
 
     async def test_missing_authorization_is_rejected_without_loading_components(self):
         components = FakeComponents(FakeManagedSessions(), FakeCorrectionService(), FakeRetrievalGate(), object(), FakeExecutor())
@@ -270,6 +405,37 @@ class ProviderRunnerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("aak1-session", runner.run_async_call["session_id"])
         self.assertEqual("provider response", result)
         self.assertIsInstance(executor.session_service, VertexAiSessionService)
+
+
+class GoogleIapVerifierTests(unittest.TestCase):
+    def test_verifier_uses_iap_keys_exact_audience_and_requires_issuer(self):
+        audience = "/projects/491899793855/locations/us-central1/services/aak-mvp"
+        verifier = cloud_run.GoogleIapVerifier()
+
+        with patch("aak.cloud_run.id_token.verify_token") as verify_token:
+            verify_token.return_value = {
+                "iss": "https://cloud.google.com/iap",
+                "sub": "iap-subject-9",
+            }
+            claims = verifier.verify("signed-assertion", audience=audience)
+
+        self.assertEqual("iap-subject-9", claims["sub"])
+        verify_token.assert_called_once()
+        _, request = verify_token.call_args.args
+        self.assertIsNotNone(request)
+        self.assertEqual("signed-assertion", verify_token.call_args.args[0])
+        self.assertEqual(audience, verify_token.call_args.kwargs["audience"])
+        self.assertEqual(cloud_run.IAP_CERTS_URL, verify_token.call_args.kwargs["certs_url"])
+
+        with patch("aak.cloud_run.id_token.verify_token") as verify_token:
+            verify_token.return_value = {"iss": "https://accounts.google.com", "sub": "x"}
+            with self.assertRaisesRegex(ValueError, "issuer"):
+                verifier.verify("signed-assertion", audience=audience)
+
+        with patch("aak.cloud_run.id_token.verify_token") as verify_token:
+            verify_token.side_effect = ValueError("wrong audience")
+            with self.assertRaisesRegex(ValueError, "wrong audience"):
+                verifier.verify("signed-assertion", audience=audience)
 
 
 if __name__ == "__main__":

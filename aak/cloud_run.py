@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Callable, Mapping, Protocol
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import HTMLResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google.adk.sessions import VertexAiSessionService
@@ -20,6 +21,102 @@ from aak.memory_bank import build_memory_write_gate, build_native_memory_bank_ad
 from aak.sessions import AuthenticatedIdentity, AuthenticationError, AuthorizationError, SessionService
 
 
+IAP_CERTS_URL = "https://www.gstatic.com/iap/verify/public_key"
+IAP_ISSUER = "https://cloud.google.com/iap"
+
+JUDGE_UI = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adaptive Agent Kernel</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #f4f7fb; color: #172033; }
+    main { max-width: 760px; margin: 3rem auto; padding: 0 1rem; }
+    section { background: white; border: 1px solid #dbe3ef; border-radius: 16px; padding: 1.5rem; box-shadow: 0 12px 35px #1b315014; }
+    h1 { margin-top: 0; }
+    label { display: block; margin: 1rem 0 .35rem; font-weight: 650; }
+    textarea, input { box-sizing: border-box; width: 100%; border: 1px solid #aebbd0; border-radius: 8px; padding: .75rem; font: inherit; }
+    textarea { min-height: 8rem; resize: vertical; }
+    .actions { display: flex; gap: .75rem; margin-top: 1rem; }
+    button { border: 0; border-radius: 8px; padding: .7rem 1rem; font: inherit; font-weight: 700; cursor: pointer; }
+    button[type=submit] { background: #2457d6; color: white; }
+    button[type=button] { background: #e8edf6; color: #172033; }
+    #response { min-height: 4rem; margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f7f9fc; white-space: pre-wrap; }
+    .meta { color: #526079; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Adaptive Agent Kernel</h1>
+      <p>Work with an adaptive agent that can use relevant remembered context while preserving authenticated Session and scope boundaries.</p>
+      <form id="interaction-form" action="/v1/interactions" method="post">
+        <label for="request">What would you like help with?</label>
+        <textarea id="request" name="request" required></textarea>
+        <label for="correction">Optional explicit Correction</label>
+        <input id="correction" name="correction" placeholder="Correct a remembered preference or fact">
+        <div class="actions">
+          <button type="submit">Send</button>
+          <button type="button" id="new-session">New Session</button>
+        </div>
+      </form>
+      <p class="meta" id="session-status">New Session — no conversation continuity yet.</p>
+      <div id="response" role="status" aria-live="polite">Your response will appear here.</div>
+      <p class="meta">Built with Google ADK, Gemini 3.5 Flash, Vertex AI, and Cloud Run.</p>
+    </section>
+  </main>
+  <script>
+    (() => {
+      let sessionId = null;
+      const form = document.getElementById('interaction-form');
+      const request = document.getElementById('request');
+      const correction = document.getElementById('correction');
+      const response = document.getElementById('response');
+      const status = document.getElementById('session-status');
+      const send = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = {request: request.value};
+        if (correction.value) payload.correction = correction.value;
+        if (sessionId) payload.session_id = sessionId;
+        send.disabled = true;
+        response.textContent = 'Working…';
+        try {
+          const result = await fetch('/v1/interactions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+          });
+          if (!result.ok) throw new Error('The interaction could not be completed.');
+          const body = await result.json();
+          sessionId = body.session_id;
+          response.textContent = body.response;
+          status.textContent = 'Session continuity active.';
+          correction.value = '';
+        } catch (error) {
+          response.textContent = error.message;
+        } finally {
+          send.disabled = false;
+        }
+      });
+
+      document.getElementById('new-session').addEventListener('click', () => {
+        sessionId = null;
+        status.textContent = 'New Session — no conversation continuity yet.';
+        response.textContent = 'Your response will appear here.';
+        correction.value = '';
+        request.focus();
+      });
+    })();
+  </script>
+</body>
+</html>
+"""
+
+
 @dataclass(frozen=True, slots=True)
 class CloudRunSettings:
     project: str
@@ -27,6 +124,7 @@ class CloudRunSettings:
     agent_platform_location: str
     agent_runtime_id: str
     oidc_audience: str
+    iap_audience: str
     scope: str
 
     @classmethod
@@ -37,6 +135,7 @@ class CloudRunSettings:
             "agent_platform_location": "AGENT_PLATFORM_LOCATION",
             "agent_runtime_id": "AGENT_RUNTIME_ID",
             "oidc_audience": "AAK_OIDC_AUDIENCE",
+            "iap_audience": "AAK_IAP_AUDIENCE",
             "scope": "AAK_SCOPE",
         }
         values: dict[str, str] = {}
@@ -61,6 +160,19 @@ class GoogleTokenVerifier:
         )
         issuer = claims.get("iss")
         if issuer not in {"accounts.google.com", "https://accounts.google.com"}:
+            raise ValueError("invalid token issuer")
+        return claims
+
+
+class GoogleIapVerifier:
+    def verify(self, token: str, *, audience: str) -> Mapping[str, object]:
+        claims = id_token.verify_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+            certs_url=IAP_CERTS_URL,
+        )
+        if claims.get("iss") != IAP_ISSUER:
             raise ValueError("invalid token issuer")
         return claims
 
@@ -140,14 +252,25 @@ def _bearer_token(header: str | None) -> str:
 
 
 def _identity(
-    header: str | None,
+    authorization: str | None,
+    iap_assertion: str | None,
     *,
-    verifier: TokenVerifier,
+    token_verifier: TokenVerifier,
+    iap_verifier: TokenVerifier,
     settings: CloudRunSettings,
 ) -> AuthenticatedIdentity:
-    token = _bearer_token(header)
+    if iap_assertion is not None:
+        if not iap_assertion or iap_assertion != iap_assertion.strip():
+            raise AuthenticationError("malformed IAP assertion")
+        token = iap_assertion
+        verifier = iap_verifier
+        audience = settings.iap_audience
+    else:
+        token = _bearer_token(authorization)
+        verifier = token_verifier
+        audience = settings.oidc_audience
     try:
-        claims = verifier.verify(token, audience=settings.oidc_audience)
+        claims = verifier.verify(token, audience=audience)
     except Exception as error:
         raise AuthenticationError("authentication failed") from error
     try:
@@ -163,10 +286,12 @@ def create_app(
     *,
     settings_loader: Callable[[], CloudRunSettings] | None = None,
     token_verifier: TokenVerifier | None = None,
+    iap_verifier: TokenVerifier | None = None,
     components_loader: Callable[[CloudRunSettings], CloudRunComponents] | None = None,
 ) -> FastAPI:
     load_settings = settings_loader or CloudRunSettings.from_env
-    verifier = token_verifier or GoogleTokenVerifier()
+    bearer_verifier = token_verifier or GoogleTokenVerifier()
+    signed_iap_verifier = iap_verifier or GoogleIapVerifier()
     load_components = components_loader or _build_components
     app = FastAPI(title="Adaptive Agent Kernel")
     components: CloudRunComponents | None = None
@@ -181,14 +306,28 @@ def create_app(
     async def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/", response_class=HTMLResponse)
+    async def judge_ui() -> HTMLResponse:
+        return HTMLResponse(JUDGE_UI)
+
     @app.post("/v1/interactions", response_model=InteractionResponse)
     async def interaction(
         payload: InteractionRequest,
         authorization: str | None = Header(default=None),
+        iap_assertion: str | None = Header(
+            default=None,
+            alias="X-Goog-IAP-JWT-Assertion",
+        ),
     ) -> InteractionResponse:
         try:
             settings = load_settings()
-            identity = _identity(authorization, verifier=verifier, settings=settings)
+            identity = _identity(
+                authorization,
+                iap_assertion,
+                token_verifier=bearer_verifier,
+                iap_verifier=signed_iap_verifier,
+                settings=settings,
+            )
             current = get_components(settings)
             if payload.session_id is None:
                 session = await current.managed_sessions.create_session(identity, ttl="86400s")
