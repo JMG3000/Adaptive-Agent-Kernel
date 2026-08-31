@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Callable, Mapping, Protocol
 
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google.adk.sessions import VertexAiSessionService
@@ -23,6 +25,11 @@ from aak.sessions import AuthenticatedIdentity, AuthenticationError, Authorizati
 
 IAP_CERTS_URL = "https://www.gstatic.com/iap/verify/public_key"
 IAP_ISSUER = "https://cloud.google.com/iap"
+LOGGER = logging.getLogger(__name__)
+_REQUEST_FIELDS = frozenset({"request", "session_id", "correction"})
+_VALIDATION_TYPES = frozenset(
+    {"extra_forbidden", "json_invalid", "missing", "string_type", "value_error"}
+)
 
 JUDGE_UI = """<!doctype html>
 <html lang="en">
@@ -184,9 +191,19 @@ class InteractionRequest(BaseModel):
     session_id: str | None = None
     correction: str | None = None
 
-    @field_validator("request", "session_id", "correction")
+    @field_validator("request", "correction")
     @classmethod
-    def canonical_strings(cls, value: str | None) -> str | None:
+    def normalize_user_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        canonical = value.strip()
+        if not canonical:
+            raise ValueError("value must be a non-empty canonical string")
+        return canonical
+
+    @field_validator("session_id")
+    @classmethod
+    def canonical_session_id(cls, value: str | None) -> str | None:
         if value is not None and (not value or value != value.strip()):
             raise ValueError("value must be a non-empty canonical string")
         return value
@@ -295,6 +312,34 @@ def create_app(
     load_components = components_loader or _build_components
     app = FastAPI(title="Adaptive Agent Kernel")
     components: CloudRunComponents | None = None
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error(
+        _request: Request,
+        error: RequestValidationError,
+    ) -> JSONResponse:
+        fields: set[str] = set()
+        types: set[str] = set()
+        for issue in error.errors():
+            location = issue.get("loc")
+            field = (
+                location[-1]
+                if isinstance(location, (list, tuple)) and location
+                else None
+            )
+            fields.add(
+                f"body.{field}" if field in _REQUEST_FIELDS else "body.unknown"
+            )
+            issue_type = issue.get("type")
+            types.add(
+                issue_type if issue_type in _VALIDATION_TYPES else "validation_error"
+            )
+        LOGGER.warning(
+            "boundary=request_validation fields=%s types=%s",
+            ",".join(sorted(fields)),
+            ",".join(sorted(types)),
+        )
+        return JSONResponse(status_code=422, content={"detail": "invalid request"})
 
     def get_components(settings: CloudRunSettings) -> CloudRunComponents:
         nonlocal components

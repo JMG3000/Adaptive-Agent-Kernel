@@ -326,6 +326,69 @@ class CloudRunAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         response = await self.request(build_test_app(FakeVerifier(), components), "POST", "/v1/interactions", headers={"Authorization": "Bearer token"}, json={"request": "hello", "provider_user": "bad"})
         self.assertEqual(422, response.status_code)
 
+    async def test_request_validation_records_only_sanitized_boundary_evidence(self):
+        components = FakeComponents(
+            FakeManagedSessions(),
+            FakeCorrectionService(),
+            FakeRetrievalGate(),
+            FakeApplication(),
+            FakeExecutor(),
+        )
+        rejected_value = {"private_marker": "should-not-appear"}
+
+        with self.assertLogs("aak.cloud_run", level="WARNING") as captured:
+            response = await self.request(
+                build_test_app(FakeVerifier(), components),
+                "POST",
+                "/v1/interactions",
+                headers={"Authorization": "Bearer token"},
+                json={"request": rejected_value},
+            )
+
+        self.assertEqual(422, response.status_code)
+        self.assertEqual({"detail": "invalid request"}, response.json())
+        evidence = "\n".join(captured.output)
+        self.assertIn("boundary=request_validation", evidence)
+        self.assertIn("fields=body.request", evidence)
+        self.assertIn("types=string_type", evidence)
+        self.assertNotIn("should-not-appear", evidence)
+        self.assertNotIn("should-not-appear", response.text)
+
+    async def test_user_authored_text_is_normalized_at_the_http_boundary(self):
+        sessions = FakeManagedSessions()
+        corrections = FakeCorrectionService()
+        retrieval = FakeRetrievalGate()
+        components = FakeComponents(
+            sessions,
+            corrections,
+            retrieval,
+            FakeApplication(),
+            FakeExecutor(),
+        )
+
+        response = await self.request(
+            build_test_app(FakeVerifier(), components),
+            "POST",
+            "/v1/interactions",
+            headers={"Authorization": "Bearer token"},
+            json={
+                "request": "  Help me decide.\n",
+                "correction": " Prefer secure delivery. ",
+            },
+        )
+
+        self.assertEqual(200, response.status_code)
+        identity = AuthenticatedIdentity("verified-subject", "tenant-a")
+        self.assertEqual((identity, "Help me decide."), retrieval.calls[0])
+        self.assertEqual(
+            (
+                identity,
+                "aak1-session",
+                ExplicitCorrection("Prefer secure delivery."),
+            ),
+            corrections.calls[0],
+        )
+
     async def test_configuration_is_required_for_interactions(self):
         components = FakeComponents(FakeManagedSessions(), FakeCorrectionService(), FakeRetrievalGate(), FakeApplication(), FakeExecutor())
         response = await self.request(
