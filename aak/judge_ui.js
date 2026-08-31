@@ -13,6 +13,134 @@
     send.disabled = isSubmitting || !hasValidRequest();
   };
 
+  const appendInlineMarkdown = (parent, source) => {
+    const tokenPattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*|_[^_\n]+_|\[[^\]\n]+\]\([^)\s]+\))/g;
+    let offset = 0;
+    for (const match of source.matchAll(tokenPattern)) {
+      if (match.index > offset) {
+        parent.append(document.createTextNode(source.slice(offset, match.index)));
+      }
+      const token = match[0];
+      if (token.startsWith('`')) {
+        const code = document.createElement('code');
+        code.textContent = token.slice(1, -1);
+        parent.append(code);
+      } else if (token.startsWith('**') || token.startsWith('__')) {
+        const strong = document.createElement('strong');
+        strong.textContent = token.slice(2, -2);
+        parent.append(strong);
+      } else if (token.startsWith('*') || token.startsWith('_')) {
+        const emphasis = document.createElement('em');
+        emphasis.textContent = token.slice(1, -1);
+        parent.append(emphasis);
+      } else {
+        const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        const label = linkMatch[1];
+        const href = linkMatch[2];
+        let safeUrl = null;
+        try {
+          const parsed = new URL(href);
+          if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            safeUrl = parsed.href;
+          }
+        } catch (_error) {
+          safeUrl = null;
+        }
+        if (safeUrl === null) {
+          parent.append(document.createTextNode(label));
+        } else {
+          const link = document.createElement('a');
+          link.textContent = label;
+          link.setAttribute('href', safeUrl);
+          link.setAttribute('target', '_blank');
+          link.setAttribute('rel', 'noopener noreferrer');
+          parent.append(link);
+        }
+      }
+      offset = match.index + token.length;
+    }
+    if (offset < source.length) {
+      parent.append(document.createTextNode(source.slice(offset)));
+    }
+  };
+
+  const headingMatch = (line) => line.match(/^(#{1,6})\s+(.+)$/);
+  const unorderedItemMatch = (line) => line.match(/^\s*[-+*]\s+(.+)$/);
+  const orderedItemMatch = (line) => line.match(/^\s*\d+[.)]\s+(.+)$/);
+  const isFence = (line) => /^\s*```[^\n]*$/.test(line);
+  const startsBlock = (line) =>
+    line.trim() === '' ||
+    isFence(line) ||
+    headingMatch(line) !== null ||
+    unorderedItemMatch(line) !== null ||
+    orderedItemMatch(line) !== null;
+
+  const renderMarkdown = (container, source) => {
+    const lines = String(source).replace(/\r\n?/g, '\n').split('\n');
+    const blocks = [];
+    let index = 0;
+    while (index < lines.length) {
+      const line = lines[index];
+      if (line.trim() === '') {
+        index += 1;
+        continue;
+      }
+
+      if (isFence(line)) {
+        index += 1;
+        const codeLines = [];
+        while (index < lines.length && !/^\s*```\s*$/.test(lines[index])) {
+          codeLines.push(lines[index]);
+          index += 1;
+        }
+        if (index < lines.length) index += 1;
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.textContent = codeLines.join('\n');
+        pre.append(code);
+        blocks.push(pre);
+        continue;
+      }
+
+      const heading = headingMatch(line);
+      if (heading !== null) {
+        const element = document.createElement(`h${heading[1].length}`);
+        appendInlineMarkdown(element, heading[2]);
+        blocks.push(element);
+        index += 1;
+        continue;
+      }
+
+      const unordered = unorderedItemMatch(line);
+      const ordered = orderedItemMatch(line);
+      if (unordered !== null || ordered !== null) {
+        const itemMatcher = unordered !== null ? unorderedItemMatch : orderedItemMatch;
+        const list = document.createElement(unordered !== null ? 'ul' : 'ol');
+        let item = itemMatcher(lines[index]);
+        while (item !== null) {
+          const listItem = document.createElement('li');
+          appendInlineMarkdown(listItem, item[1]);
+          list.append(listItem);
+          index += 1;
+          item = index < lines.length ? itemMatcher(lines[index]) : null;
+        }
+        blocks.push(list);
+        continue;
+      }
+
+      const paragraphLines = [line];
+      index += 1;
+      while (index < lines.length && !startsBlock(lines[index])) {
+        paragraphLines.push(lines[index]);
+        index += 1;
+      }
+      const paragraph = document.createElement('p');
+      appendInlineMarkdown(paragraph, paragraphLines.join(' '));
+      blocks.push(paragraph);
+    }
+    container.replaceChildren(...blocks);
+  };
+
   request.addEventListener('input', syncSendState);
   request.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return;
@@ -41,7 +169,7 @@
       if (!result.ok) throw new Error('The interaction could not be completed.');
       const body = await result.json();
       sessionId = body.session_id;
-      response.textContent = body.response;
+      renderMarkdown(response, body.response);
       status.textContent = 'Session continuity active.';
       request.value = '';
       correction.value = '';

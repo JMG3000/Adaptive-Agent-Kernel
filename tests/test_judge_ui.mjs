@@ -6,12 +6,32 @@ import vm from 'node:vm';
 const SCRIPT = readFileSync(new URL('../aak/judge_ui.js', import.meta.url), 'utf8');
 
 class FakeElement {
-  constructor() {
+  constructor(tagName = 'div') {
+    this.attributes = new Map();
+    this.children = [];
     this.disabled = false;
     this.focusCount = 0;
     this.listeners = new Map();
-    this.textContent = '';
+    this.tagName = tagName.toUpperCase();
+    this._textContent = '';
     this.value = '';
+  }
+
+  get innerHTML() {
+    return '';
+  }
+
+  set innerHTML(_value) {
+    throw new Error('Model output must not be rendered with innerHTML');
+  }
+
+  get textContent() {
+    return this._textContent + this.children.map((child) => child.textContent).join('');
+  }
+
+  set textContent(value) {
+    this._textContent = String(value);
+    this.children = [];
   }
 
   addEventListener(type, listener) {
@@ -39,6 +59,31 @@ class FakeElement {
 
   focus() {
     this.focusCount += 1;
+  }
+
+  append(...children) {
+    this.children.push(...children);
+  }
+
+  appendChild(child) {
+    this.append(child);
+    return child;
+  }
+
+  replaceChildren(...children) {
+    this._textContent = '';
+    this.children = [];
+    this.append(...children);
+  }
+
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+  }
+}
+
+class FakeTextNode {
+  constructor(value) {
+    this.textContent = String(value);
   }
 }
 
@@ -81,12 +126,38 @@ function loadUi(fetchImpl) {
   elements.send = new FakeElement();
   elements['interaction-form'] = new FakeForm(elements.send);
   const document = {
+    createElement(tagName) {
+      return new FakeElement(tagName);
+    },
+    createTextNode(value) {
+      return new FakeTextNode(value);
+    },
     getElementById(id) {
       return elements[id];
     },
   };
-  vm.runInNewContext(SCRIPT, {document, fetch: fetchImpl});
+  vm.runInNewContext(SCRIPT, {document, fetch: fetchImpl, URL});
   return elements;
+}
+
+function descendants(node, tagName) {
+  const expected = tagName.toUpperCase();
+  const matches = [];
+  for (const child of node.children ?? []) {
+    if (child.tagName === expected) matches.push(child);
+    matches.push(...descendants(child, expected));
+  }
+  return matches;
+}
+
+async function renderMarkdown(markdown) {
+  const ui = loadUi(async () =>
+    jsonResponse({session_id: 'session-1', response: markdown}),
+  );
+  ui.request.value = 'Render this response';
+  await ui.request.emit('input');
+  await ui['interaction-form'].emit('submit');
+  return ui.response;
 }
 
 test('empty and whitespace-only requests cannot submit', async () => {
@@ -233,4 +304,66 @@ test('New Session clears inputs and browser-held Session state', async () => {
   await ui.request.emit('input');
   await ui['interaction-form'].emit('submit');
   assert.equal('session_id' in payloads[1], false);
+});
+
+test('Markdown headings render as heading elements', async () => {
+  const response = await renderMarkdown('# Main heading\n\n## Detail heading');
+
+  assert.equal(descendants(response, 'h1')[0].textContent, 'Main heading');
+  assert.equal(descendants(response, 'h2')[0].textContent, 'Detail heading');
+});
+
+test('Markdown bold and emphasis render as semantic elements', async () => {
+  const response = await renderMarkdown('Use **strong guidance** with *careful emphasis*.');
+
+  assert.equal(descendants(response, 'strong')[0].textContent, 'strong guidance');
+  assert.equal(descendants(response, 'em')[0].textContent, 'careful emphasis');
+});
+
+test('Markdown ordered and unordered lists render as list elements', async () => {
+  const response = await renderMarkdown('- First\n- Second\n\n1. Plan\n2. Verify');
+
+  assert.equal(descendants(response, 'ul').length, 1);
+  assert.equal(descendants(response, 'ol').length, 1);
+  assert.deepEqual(
+    descendants(response, 'li').map((item) => item.textContent),
+    ['First', 'Second', 'Plan', 'Verify'],
+  );
+});
+
+test('Markdown inline and fenced code render as code elements', async () => {
+  const response = await renderMarkdown('Use `uv sync`.\n\n```python\nprint("safe")\n```');
+  const code = descendants(response, 'code');
+
+  assert.equal(code[0].textContent, 'uv sync');
+  assert.equal(descendants(response, 'pre')[0].children[0].textContent, 'print("safe")');
+});
+
+test('ordinary plain text remains unchanged in a paragraph', async () => {
+  const response = await renderMarkdown('A normal response remains readable.');
+
+  assert.equal(descendants(response, 'p').length, 1);
+  assert.equal(response.textContent, 'A normal response remains readable.');
+});
+
+test('model-produced HTML and script remain inert text', async () => {
+  const modelOutput = '<script>globalThis.compromised = true</script> <img src=x onerror=alert(1)>';
+  const response = await renderMarkdown(modelOutput);
+
+  assert.equal(descendants(response, 'script').length, 0);
+  assert.equal(descendants(response, 'img').length, 0);
+  assert.equal(response.textContent, modelOutput);
+});
+
+test('only HTTP and HTTPS Markdown links become anchors', async () => {
+  const response = await renderMarkdown(
+    '[unsafe](javascript:alert(1)) [safe](https://example.com/docs)',
+  );
+  const links = descendants(response, 'a');
+
+  assert.equal(links.length, 1);
+  assert.equal(links[0].textContent, 'safe');
+  assert.equal(links[0].attributes.get('href'), 'https://example.com/docs');
+  assert.equal(links[0].attributes.get('rel'), 'noopener noreferrer');
+  assert.equal(response.textContent.includes('unsafe'), true);
 });

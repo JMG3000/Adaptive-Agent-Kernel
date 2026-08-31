@@ -54,6 +54,13 @@ _JUDGE_UI_TEMPLATE = """<!doctype html>
     button[type=submit] { background: #2457d6; color: white; }
     button[type=button] { background: #e8edf6; color: #172033; }
     #response { min-height: 4rem; margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f7f9fc; white-space: pre-wrap; }
+    #response > :first-child { margin-top: 0; }
+    #response > :last-child { margin-bottom: 0; }
+    #response h1, #response h2, #response h3, #response h4, #response h5, #response h6 { line-height: 1.25; }
+    #response pre { overflow-x: auto; padding: .8rem; border-radius: 6px; background: #172033; color: #f4f7fb; white-space: pre; }
+    #response code { padding: .1rem .25rem; border-radius: 4px; background: #e8edf6; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    #response pre code { padding: 0; background: transparent; color: inherit; }
+    #response a { color: #2457d6; }
     .meta { color: #526079; font-size: .9rem; }
   </style>
 </head>
