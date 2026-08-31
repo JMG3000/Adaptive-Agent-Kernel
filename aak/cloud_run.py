@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Mapping, Protocol
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -31,7 +32,9 @@ _VALIDATION_TYPES = frozenset(
     {"extra_forbidden", "json_invalid", "missing", "string_type", "value_error"}
 )
 
-JUDGE_UI = """<!doctype html>
+_JUDGE_UI_SCRIPT = Path(__file__).with_name("judge_ui.js").read_text(encoding="utf-8")
+
+_JUDGE_UI_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -65,7 +68,7 @@ JUDGE_UI = """<!doctype html>
         <label for="correction">Optional explicit Correction</label>
         <input id="correction" name="correction" placeholder="Correct a remembered preference or fact">
         <div class="actions">
-          <button type="submit">Send</button>
+          <button type="submit" disabled>Send</button>
           <button type="button" id="new-session">New Session</button>
         </div>
       </form>
@@ -74,54 +77,12 @@ JUDGE_UI = """<!doctype html>
       <p class="meta">Built with Google ADK, Gemini 3.5 Flash, Vertex AI, and Cloud Run.</p>
     </section>
   </main>
-  <script>
-    (() => {
-      let sessionId = null;
-      const form = document.getElementById('interaction-form');
-      const request = document.getElementById('request');
-      const correction = document.getElementById('correction');
-      const response = document.getElementById('response');
-      const status = document.getElementById('session-status');
-      const send = form.querySelector('button[type="submit"]');
-
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const payload = {request: request.value};
-        if (correction.value) payload.correction = correction.value;
-        if (sessionId) payload.session_id = sessionId;
-        send.disabled = true;
-        response.textContent = 'Working…';
-        try {
-          const result = await fetch('/v1/interactions', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload),
-          });
-          if (!result.ok) throw new Error('The interaction could not be completed.');
-          const body = await result.json();
-          sessionId = body.session_id;
-          response.textContent = body.response;
-          status.textContent = 'Session continuity active.';
-          correction.value = '';
-        } catch (error) {
-          response.textContent = error.message;
-        } finally {
-          send.disabled = false;
-        }
-      });
-
-      document.getElementById('new-session').addEventListener('click', () => {
-        sessionId = null;
-        status.textContent = 'New Session — no conversation continuity yet.';
-        response.textContent = 'Your response will appear here.';
-        correction.value = '';
-        request.focus();
-      });
-    })();
-  </script>
+  <script>__AAK_JUDGE_UI_SCRIPT__</script>
 </body>
 </html>
 """
+
+JUDGE_UI = _JUDGE_UI_TEMPLATE.replace("__AAK_JUDGE_UI_SCRIPT__", _JUDGE_UI_SCRIPT)
 
 
 @dataclass(frozen=True, slots=True)
