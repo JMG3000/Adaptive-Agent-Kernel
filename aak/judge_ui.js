@@ -5,6 +5,7 @@
   const request = document.getElementById('request');
   const correction = document.getElementById('correction');
   const response = document.getElementById('response');
+  const feedback = document.getElementById('interaction-feedback');
   const status = document.getElementById('session-status');
   const send = form.querySelector('button[type="submit"]');
 
@@ -141,6 +142,29 @@
     container.replaceChildren(...blocks);
   };
 
+  const buildMessage = (role, label) => {
+    const message = document.createElement('article');
+    message.className = `message message-${role}`;
+    const messageLabel = document.createElement('p');
+    messageLabel.className = 'message-label';
+    messageLabel.textContent = label;
+    const body = document.createElement('div');
+    body.className = 'message-body';
+    message.append(messageLabel, body);
+    return {message, body};
+  };
+
+  let successfulTurns = 0;
+  const appendTranscriptTurn = (userText, agentText) => {
+    if (successfulTurns === 0) response.replaceChildren();
+    const user = buildMessage('user', 'User');
+    user.body.textContent = userText;
+    const agent = buildMessage('agent', 'AAK');
+    renderMarkdown(agent.body, agentText);
+    response.append(user.message, agent.message);
+    successfulTurns += 1;
+  };
+
   request.addEventListener('input', syncSendState);
   request.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return;
@@ -159,7 +183,7 @@
     if (sessionId) payload.session_id = sessionId;
     isSubmitting = true;
     syncSendState();
-    response.textContent = 'Working…';
+    feedback.textContent = 'Working…';
     try {
       const result = await fetch('/v1/interactions', {
         method: 'POST',
@@ -169,13 +193,14 @@
       if (!result.ok) throw new Error('The interaction could not be completed.');
       const body = await result.json();
       sessionId = body.session_id;
-      renderMarkdown(response, body.response);
+      appendTranscriptTurn(payload.request, body.response);
+      feedback.textContent = '';
       status.textContent = 'Session continuity active.';
       request.value = '';
       correction.value = '';
       request.focus();
     } catch (error) {
-      response.textContent = error.message;
+      feedback.textContent = error.message;
     } finally {
       isSubmitting = false;
       syncSendState();
@@ -184,8 +209,10 @@
 
   document.getElementById('new-session').addEventListener('click', () => {
     sessionId = null;
+    successfulTurns = 0;
     status.textContent = 'New Session — no conversation continuity yet.';
     response.textContent = 'Your response will appear here.';
+    feedback.textContent = '';
     request.value = '';
     correction.value = '';
     syncSendState();

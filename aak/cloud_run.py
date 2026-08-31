@@ -53,9 +53,16 @@ _JUDGE_UI_TEMPLATE = """<!doctype html>
     button { border: 0; border-radius: 8px; padding: .7rem 1rem; font: inherit; font-weight: 700; cursor: pointer; }
     button[type=submit] { background: #2457d6; color: white; }
     button[type=button] { background: #e8edf6; color: #172033; }
-    #response { min-height: 4rem; margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f7f9fc; white-space: pre-wrap; }
+    #response { display: flex; flex-direction: column; gap: 1rem; min-height: 4rem; margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f7f9fc; white-space: pre-wrap; }
     #response > :first-child { margin-top: 0; }
     #response > :last-child { margin-bottom: 0; }
+    .message { max-width: 88%; padding: .8rem 1rem; border-radius: 10px; }
+    .message-user { align-self: flex-end; background: #e8edf6; }
+    .message-agent { align-self: flex-start; background: white; border: 1px solid #dbe3ef; }
+    .message-label { margin: 0 0 .45rem; color: #526079; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .message-body > :first-child { margin-top: 0; }
+    .message-body > :last-child { margin-bottom: 0; }
+    #interaction-feedback:empty { display: none; }
     #response h1, #response h2, #response h3, #response h4, #response h5, #response h6 { line-height: 1.25; }
     #response pre { overflow-x: auto; padding: .8rem; border-radius: 6px; background: #172033; color: #f4f7fb; white-space: pre; }
     #response code { padding: .1rem .25rem; border-radius: 4px; background: #e8edf6; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -80,7 +87,8 @@ _JUDGE_UI_TEMPLATE = """<!doctype html>
         </div>
       </form>
       <p class="meta" id="session-status">New Session — no conversation continuity yet.</p>
-      <div id="response" role="status" aria-live="polite">Your response will appear here.</div>
+      <div id="response" role="log" aria-live="polite" aria-relevant="additions">Your response will appear here.</div>
+      <p class="meta" id="interaction-feedback" role="status" aria-live="polite"></p>
       <p class="meta">Built with Google ADK, Gemini 3.5 Flash, Vertex AI, and Cloud Run.</p>
     </section>
   </main>

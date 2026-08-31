@@ -9,6 +9,7 @@ class FakeElement {
   constructor(tagName = 'div') {
     this.attributes = new Map();
     this.children = [];
+    this.className = '';
     this.disabled = false;
     this.focusCount = 0;
     this.listeners = new Map();
@@ -118,6 +119,7 @@ function jsonResponse(body, {ok = true} = {}) {
 function loadUi(fetchImpl) {
   const elements = {
     correction: new FakeElement(),
+    'interaction-feedback': new FakeElement(),
     'new-session': new FakeElement(),
     request: new FakeElement(),
     response: new FakeElement(),
@@ -150,6 +152,15 @@ function descendants(node, tagName) {
   return matches;
 }
 
+function descendantsWithClass(node, className) {
+  const matches = [];
+  for (const child of node.children ?? []) {
+    if ((child.className ?? '').split(/\s+/).includes(className)) matches.push(child);
+    matches.push(...descendantsWithClass(child, className));
+  }
+  return matches;
+}
+
 async function renderMarkdown(markdown) {
   const ui = loadUi(async () =>
     jsonResponse({session_id: 'session-1', response: markdown}),
@@ -157,7 +168,7 @@ async function renderMarkdown(markdown) {
   ui.request.value = 'Render this response';
   await ui.request.emit('input');
   await ui['interaction-form'].emit('submit');
-  return ui.response;
+  return descendantsWithClass(ui.response, 'message-body')[1];
 }
 
 test('empty and whitespace-only requests cannot submit', async () => {
@@ -240,7 +251,14 @@ test('successful submission clears inputs, restores focus, and preserves Session
   assert.equal(ui.request.value, '');
   assert.equal(ui.correction.value, '');
   assert.equal(ui.request.focusCount, 1);
-  assert.equal(ui.response.textContent, 'completed');
+  assert.equal(descendantsWithClass(ui.response, 'message')[0].className, 'message message-user');
+  assert.equal(descendantsWithClass(ui.response, 'message')[1].className, 'message message-agent');
+  assert.deepEqual(
+    descendantsWithClass(ui.response, 'message-label').map((label) => label.textContent),
+    ['User', 'AAK'],
+  );
+  assert.equal(descendantsWithClass(ui.response, 'message-body')[0].textContent, 'First request');
+  assert.equal(descendantsWithClass(ui.response, 'message-body')[1].textContent, 'completed');
   assert.equal(ui.send.disabled, true);
 
   ui.request.value = 'Continue';
@@ -259,7 +277,8 @@ test('failed submission preserves request and Correction text', async () => {
 
   assert.equal(ui.request.value, 'Please keep this');
   assert.equal(ui.correction.value, 'Keep this too');
-  assert.equal(ui.response.textContent, 'The interaction could not be completed.');
+  assert.equal(ui['interaction-feedback'].textContent, 'The interaction could not be completed.');
+  assert.equal(descendantsWithClass(ui.response, 'message').length, 0);
   assert.equal(ui.send.disabled, false);
 });
 
@@ -299,6 +318,7 @@ test('New Session clears inputs and browser-held Session state', async () => {
   assert.equal(ui.send.disabled, true);
   assert.equal(ui['session-status'].textContent, 'New Session — no conversation continuity yet.');
   assert.equal(ui.response.textContent, 'Your response will appear here.');
+  assert.equal(descendantsWithClass(ui.response, 'message').length, 0);
 
   ui.request.value = 'Fresh request';
   await ui.request.emit('input');
@@ -366,4 +386,39 @@ test('only HTTP and HTTPS Markdown links become anchors', async () => {
   assert.equal(links[0].attributes.get('href'), 'https://example.com/docs');
   assert.equal(links[0].attributes.get('rel'), 'noopener noreferrer');
   assert.equal(response.textContent.includes('unsafe'), true);
+});
+
+test('a second successful turn preserves the first pair and appends the second pair', async () => {
+  const replies = ['First reply', 'Second reply'];
+  const ui = loadUi(async () =>
+    jsonResponse({session_id: 'session-1', response: replies.shift()}),
+  );
+
+  ui.request.value = 'First request';
+  await ui.request.emit('input');
+  await ui['interaction-form'].emit('submit');
+  ui.request.value = 'Second request';
+  await ui.request.emit('input');
+  await ui['interaction-form'].emit('submit');
+
+  assert.deepEqual(
+    descendantsWithClass(ui.response, 'message-body').map((message) => message.textContent),
+    ['First request', 'First reply', 'Second request', 'Second reply'],
+  );
+});
+
+test('user-provided HTML and script syntax remain inert transcript text', async () => {
+  const userInput = '<script>globalThis.userCompromised = true</script><img onerror=alert(1)>';
+  const ui = loadUi(async () =>
+    jsonResponse({session_id: 'session-1', response: 'Safe response'}),
+  );
+  ui.request.value = userInput;
+  await ui.request.emit('input');
+
+  await ui['interaction-form'].emit('submit');
+
+  const userBody = descendantsWithClass(ui.response, 'message-body')[0];
+  assert.equal(userBody.textContent, userInput);
+  assert.equal(descendants(userBody, 'script').length, 0);
+  assert.equal(descendants(userBody, 'img').length, 0);
 });
